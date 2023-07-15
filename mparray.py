@@ -4,8 +4,11 @@ from mpmath import mp
 # TODO:
 #  add dtypes
 #  add test suite
+#  add documentation
 #  improve pretty printing
 #  add scipy special functions
+#  put special functions in `special` namespace
+#  error when special function is not available
 
 
 # Array Object (Operators, Attributes, and Methods)
@@ -177,7 +180,104 @@ for f in other_funcs.split():
     # arguably results should be converted to mpfarray if they weren't already?
     sys.modules[__name__].__dict__[f] = lambda *args, f=f, **kwargs: getattr(np, f)(*args, **kwargs)
 
-if __name__ == "__main__":
-    data = [1., -2.]
-    data = mparray(data)
-    print(data)  # I'd like to adjust the pretty-printing
+
+def double_working_precision(f):
+    def wrapped(*args, **kwargs):
+        mp.dps *= 2
+        res = f(*args, **kwargs)
+        mp.dps //= 2
+        return res
+
+    return wrapped
+
+
+# Move these to a `special` namespace
+expm1 = np.vectorize(mp.expm1)
+log1p = np.vectorize(mp.log1p)
+factorial2 = np.vectorize(mp.fac2)
+psi = np.vectorize(mp.digamma)
+digamma = np.vectorize(mp.digamma)
+ndtr = np.vectorize(mp.ncdf)
+gammaln = np.vectorize(mp.loggamma)
+erf = np.vectorize(mp.erf)
+erfc = np.vectorize(mp.erfc)
+zeta = np.vectorize(mp.zeta)
+
+
+@np.vectorize
+def gammainc(x, a):
+    return mp.gammainc(x, a=0, b=a, regularized=True)
+
+
+@np.vectorize
+def gammaincc(x, a):
+    return mp.gammainc(x, a=a, b=mp.inf, regularized=True)
+
+
+@np.vectorize
+def ndtri(x):
+    extra_dps = int(mp.ceil(-mp.log10(x)))
+    mp.dps += extra_dps
+    res = mp.sqrt(2)*mp.erfinv(2*x - mp.one)
+    mp.dps -= extra_dps
+    return res
+
+
+@np.vectorize
+@double_working_precision  # not always sufficient
+def log_ndtr(x):
+    return mp.log(mp.ncdf(x))
+
+
+@np.vectorize
+@double_working_precision  # not always sufficient
+def betaln(x, y):
+    return mp.log(mp.beta(x, y))
+
+
+@np.vectorize
+def xlogy(x, y):
+    return x*mp.log(y)
+
+
+@np.vectorize
+def xlog1py(x, y):
+    return x*log1p(y)
+
+
+# others to be added
+# gammaincinv
+# gammainccinv
+# chdtr
+# chdtrc
+# chdtri
+# chndtr
+# chndtrix
+# ive
+# i0e
+# i1e
+# hyp1f1
+# hyp2f1
+# stdtr
+# stdtrit
+# powm1
+# logsumexp
+# ndtri_exp
+# tklmbda
+# boxcox
+# boxcox1p
+# inv_boxcox
+# inv_boxcox1p
+# cosm1
+# binom
+# kolmogorov, smirnov, f
+# comb
+# lambertw
+# poch
+# kv
+# kve
+# k1e
+# expit
+# logit
+# erfcinv
+# erfinv

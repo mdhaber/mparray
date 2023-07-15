@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from mpmath import mp
 # TODO:
@@ -5,7 +6,6 @@ from mpmath import mp
 #  add test suite
 #  improve pretty printing
 #  add scipy special functions
-
 
 
 # Array Object (Operators, Attributes, and Methods)
@@ -31,8 +31,9 @@ inf
 nan
 pi
 """
+
 for c in constants.split():
-    exec(f'{c} = mp.{c}')
+    sys.modules[__name__].__dict__[c] = getattr(mp, c)
 
 newaxis = np.newaxis
 
@@ -57,7 +58,7 @@ zeros_like
 """
 
 for f in creation_funcs.split():
-    exec(f'{f} = lambda *args, **kwargs: mparray(np.{f}(*args, **kwargs))')
+    sys.modules[__name__].__dict__[f] = lambda *args, f=f, **kwargs: mparray(getattr(np, f)(*args, **kwargs))
 
 # Data Type Functions need to be defined manually
 # Data Types to be defined
@@ -127,7 +128,7 @@ trunc
 
 for f in elementwise_funcs.split():
     try:
-        exec(f'{f} = np.vectorize(mp.{f})')
+        sys.modules[__name__].__dict__[f] = np.vectorize(getattr(mp, f))
     except AttributeError:
         pass
 
@@ -174,7 +175,7 @@ any
 
 for f in other_funcs.split():
     # arguably results should be converted to mpfarray if they weren't already?
-    exec(f'{f} = lambda *args, **kwargs: np.{f}(*args, **kwargs)')
+    sys.modules[__name__].__dict__[f] = lambda *args, f=f, **kwargs: getattr(np, f)(*args, **kwargs)
 
 if __name__ == "__main__":
     data = [1., -2.]

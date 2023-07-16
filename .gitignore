@@ -1,0 +1,140 @@
+# Copied from SciPy (minus project-specific entries)
+
+# Editor temporary/working/backup files #
+#########################################
+.#*
+[#]*#
+*~
+*$
+*.bak
+.idea/*
+*.kdev4
+*.org
+.project
+.pydevproject
+*.rej
+.settings/
+.spyproject/
+.*.sw[nop]
+.sw[nop]
+*.tmp
+*.vim
+tags
+.venv/
+.theia/
+.vscode/
+
+# Compiled source #
+###################
+*.a
+*.com
+*.class
+*.dll
+*.exe
+*.l[ao]
+*.o
+*.o.d
+*.py[ocd]
+*.so
+_configtest.c
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.bz2
+*.bzip2
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.tbz2
+*.tgz
+*.zip
+
+# Python files #
+################
+# setup.py working directory
+build
+# sphinx build directory
+doc/_build
+# cython files
+cythonize.dat
+# setup.py dist directory
+dist
+# Egg metadata
+*.egg-info
+# tox testing tool
+.tox
+# The shelf plugin uses this dir
+./.shelf
+MANIFEST
+# distutils configuration
+site.cfg
+setup.cfg
+# other temporary files
+.coverage
+.deps
+.libs
+.eggs
+pip-wheel-metadata
+
+# Meson #
+#########
+.mesonpy-native-file.ini
+installdir/
+build-install/*
+.mesonpy/*
+
+# doit
+######
+.doit.db.dat
+.doit.db.dir
+.doit.db.db
+.doit.db
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# pytest cache #
+################
+.cache/*
+.pytest_cache/*
+
+# mypy cache #
+##############
+.mypy_cache/*
+
+# linter #
+##########
+.ruff_cache/*
+.pre-commit-workdir/*
+
+# Patches #
+###########
+*.patch
+*.diff
+
+# OS generated files #
+######################
+.directory
+.fseventsd
+.DS_Store*
+.gdb_history
+.VolumeIcon.icns
+ehthumbs.db
+Icon?
+Thumbs.db
+*.dSYM
+
+# Documentation generated files #
+#################################
+doc/frontpage/build
+doc/source/reference/generated
+**/.ipynb_checkpoints

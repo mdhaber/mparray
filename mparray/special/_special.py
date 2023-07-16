@@ -78,12 +78,16 @@ def ndtri(x):
 
 @np.vectorize
 def log_ndtr(x):
-    return mp.log(mp.ncdf(x))  # needs extra precision for large x
+    if x <= 0:
+        return mp.log(mp.ncdf(x))
+    else:
+        complement = mp.ncdf(-x)
+        return mp.log1p(-complement)
 
 
 @np.vectorize
 def betaln(x, y):
-    return mp.log(mp.beta(x, y))  # may need extra precision
+    return mp.log(mp.beta(x, y))
 
 
 @np.vectorize

@@ -35,7 +35,8 @@ arg01 = {'ndtri', 'logit'}
     ['log_ndtr', 1], ['betaln', 2], ['xlogy', 2], ['xlog1py', 2], ['cosm1', 1],
     ['expit', 1], ['boxcox', 2], ['boxcox1p', 2], ['ive', 2], ['i0e', 1],
     ['i1e', 1], ['kve', 2], ['k0e', 1], ['k1e', 1], ['factorial2', 1],
-    ['lambertw', 2], ['logit', 1], ['ndtri', 1]])
+    ['lambertw', 2], ['logit', 1], ['ndtri', 1]
+])
 def test_special_real(shape, f_name, nargs):
     f_mps = getattr(mps, f_name)
     f_sps = getattr(sps, f_name)
@@ -52,9 +53,28 @@ def test_special_real(shape, f_name, nargs):
     assert_mp_type(res)
     assert_allclose(res, ref)
 
+
+@pytest.mark.parametrize('case', [
+    ('log_ndtr', (-30,)), ('log_ndtr', (30,)),  # ndtr is very close to 0 or 1
+    ('betaln', (1e10, 1e20)),  # beta is very small
+    ('betaln', (1, 1+1e-10)),  # beta is nearly 1
+    ('betaln', (1e10, 1e-20)),  # beta is very large
+    ('cosm1', (1e-20,)),  # cos is very close to 1
+])
+def test_special_edge(case):
+    # test edge cases where accuracy is suspected to be challenging
+    f_name, args = case
+    f_mps = getattr(mps, f_name)
+    f_sps = getattr(sps, f_name)
+
+    res, ref = f_mps(*args), f_sps(*args)
+    assert_mp_type(res)
+    assert_allclose(res, ref)
+
+
 @pytest.mark.parametrize('axis', (0, 1))
 def test_logsumexp(axis):
-    # logsumexp is unusual in that it does a reduction of an array
+    # logsumexp is unusual in that it does a reduction of an array; test separately
     rng = np.random.default_rng(8583692938552)
     a = rng.random((3, 4))
     b = rng.random((3, 4))

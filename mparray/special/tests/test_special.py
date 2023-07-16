@@ -23,7 +23,7 @@ def assert_mp_type(res):
 goodargs = (3.123, 2.456, 1.789, 0.234)
 
 intarg = {'factorial2', 'lambertw'}
-arg01 = {'ndtri', 'logit'}
+arg01 = {'ndtri', 'logit', 'betainc'}
 
 
 @pytest.mark.parametrize('shape', [tuple(), (2,)])
@@ -35,7 +35,8 @@ arg01 = {'ndtri', 'logit'}
     ['log_ndtr', 1], ['betaln', 2], ['xlogy', 2], ['xlog1py', 2], ['cosm1', 1],
     ['expit', 1], ['boxcox', 2], ['boxcox1p', 2], ['ive', 2], ['i0e', 1],
     ['i1e', 1], ['kve', 2], ['k0e', 1], ['k1e', 1], ['factorial2', 1],
-    ['lambertw', 2], ['logit', 1], ['ndtri', 1]
+    ['lambertw', 2], ['logit', 1], ['ndtri', 1], ['chdtr', 2], ['chdtrc', 2],
+    ['betainc', 3], ['fdtr', 3], ['fdtrc', 3]
 ])
 def test_special_real(shape, f_name, nargs):
     f_mps = getattr(mps, f_name)

@@ -91,6 +91,21 @@ def betaln(x, y):
 
 
 @np.vectorize
+def betainc(a, b, x):
+    return mp.betainc(a, b, 0, x, regularized=True)
+
+
+@np.vectorize
+def fdtr(dn, dd, x):
+    return mp.betainc(dn/2, dd/2, 0, x*dn/(dd + x*dn), regularized=True)
+
+
+@np.vectorize
+def fdtrc(dn, dd, x):
+    return mp.betainc(dn/2, dd/2, x*dn/(dd + x*dn), 1, regularized=True)
+
+
+@np.vectorize
 def xlogy(x, y):
     return x*mp.log(y)
 
@@ -167,11 +182,17 @@ def k1e(x):
     return mparray(kve(1, x))
 
 
+def chdtr(v, x):
+    return mparray(gammainc(v / 2, x / 2))
+
+
+def chdtrc(v, x):
+    return mparray(gammaincc(v / 2, x / 2))
+
+
 # others to be added
 # gammaincinv
 # gammainccinv
-# chdtr
-# chdtrc
 # chdtri
 # chndtr
 # chndtrix
@@ -181,6 +202,6 @@ def k1e(x):
 # tklmbda
 # inv_boxcox
 # inv_boxcox1p
-# kolmogorov, smirnov, f
+# kolmogorov, smirnov
 # erfcinv
 # erfinv

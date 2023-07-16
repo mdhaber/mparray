@@ -6,8 +6,6 @@ from mpmath import mp
 #  add test suite
 #  add documentation
 #  improve pretty printing
-#  add scipy special functions
-#  put special functions in `special` namespace
 #  error when special function is not available
 
 

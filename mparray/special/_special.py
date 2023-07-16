@@ -3,39 +3,6 @@ from mpmath import mp
 from mparray import log, exp, real, mparray
 
 
-def double_working_precision(f):
-    def wrapped(*args, **kwargs):
-        mp.dps *= 2
-        res = f(*args, **kwargs)
-        mp.dps //= 2
-        return res
-
-    return wrapped
-
-
-def working_precision_for_complement(f):
-    def wrapped(x, *args, **kwargs):
-        extra_dps = int(mp.ceil(-mp.log10(x)))
-        mp.dps += extra_dps
-        res = f(x, *args, **kwargs)
-        mp.dps -= extra_dps
-        return res
-
-    return wrapped
-
-
-# def complement(f, sign=1):
-#     def wrapped(*args, **kwargs):
-#         res = f(*args, **kwargs)
-#         extra_dps = int(mp.ceil(-mp.log10(res)))
-#         mp.dps += extra_dps
-#         res = mp.one - res
-#         mp.dps -= extra_dps
-#         return res * sign
-#
-#     return wrapped
-
-
 expm1 = np.vectorize(mp.expm1)
 log1p = np.vectorize(mp.log1p)
 factorial2 = np.vectorize(mp.fac2)
@@ -106,12 +73,12 @@ def fdtrc(dn, dd, x):
 
 
 @np.vectorize
-def xlogy(x, y):
+def xlogy(x, y):  # needs accuracy review
     return x*mp.log(y)
 
 
 @np.vectorize
-def xlog1py(x, y):
+def xlog1py(x, y):  # needs accuracy review
     return x*log1p(y)
 
 
@@ -126,18 +93,18 @@ def cosm1(x):
 
 
 @np.vectorize
-def logit(x):
-    res = mp.log(x) - mp.log1p(-x)  # needs precision near x=0.5
+def logit(x):  # needs accuracy review
+    res = mp.log(x) - mp.log1p(-x)
     return res
 
 
 @np.vectorize
-def expit(x):
-    return mp.exp(x - mp.log1p(mp.exp(x)))  # needs extra precision
+def expit(x):  # needs accuracy review
+    return mp.exp(x - mp.log1p(mp.exp(x)))
 
 
 @np.vectorize
-def boxcox(x, lmbda):  # precision check
+def boxcox(x, lmbda):  # needs accuracy review
     """
     y = (x**lmbda - 1) / lmbda  if lmbda != 0
         log(x)                  if lmbda == 0
@@ -148,8 +115,8 @@ def boxcox(x, lmbda):  # precision check
         return mp.lmbda(x)
 
 
-def boxcox1p(x, lmbda):  # precision check
-    return boxcox(1 + x, lmbda)
+def boxcox1p(x, lmbda):  # needs accuracy review
+    return boxcox(mp.one + x, lmbda)
 
 
 def logsumexp(a, axis=None, b=None):
@@ -190,13 +157,21 @@ def chdtrc(v, x):
     return mparray(gammaincc(v / 2, x / 2))
 
 
+def stdtr(df, t):
+    x = df / (t**2 + df)
+    p = betainc(df/2, mp.one/2, x)/2
+    if t < 0:
+        return mparray(p)
+    else:
+        return mparray(mp.one - p)
+
+
 # others to be added
 # gammaincinv
 # gammainccinv
 # chdtri
 # chndtr
 # chndtrix
-# stdtr
 # stdtrit
 # ndtri_exp
 # tklmbda

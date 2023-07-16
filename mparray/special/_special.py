@@ -1,6 +1,6 @@
 import numpy as np
 from mpmath import mp
-from mparray import exp, real
+from mparray import log, exp, real, mparray
 
 
 def double_working_precision(f):
@@ -133,34 +133,34 @@ def boxcox1p(x, lmbda):  # precision check
     return boxcox(1 + x, lmbda)
 
 
-def logsumexp(x):
-    # as far as I know, logsumexp is to avoid overflow,
-    # not to improve precision, and mpmath avoids overflow
-    return mp.log(exp(x).sum())
+def logsumexp(a, axis=None, b=None):
+    # As far as I know, logsumexp is to avoid overflow, not to improve precision.
+    # mpmath doesn't overflow, so naive implementation should be OK.
+    return log((b*exp(a)).sum(axis=axis))
 
 
 def ive(v, z):
-    return iv(v, z) * exp(-abs(real(z)))
+    return mparray(iv(v, z) * exp(-abs(real(z))))
 
 
 def i0e(x):
-    return ive(0, x)
+    return mparray(ive(0, x))
 
 
 def i1e(x):
-    return ive(1, x)
+    return mparray(ive(1, x))
 
 
 def kve(v, z):
-    return kv(v, z) * exp(z)
+    return mparray(kv(v, z) * exp(z))
 
 
 def k0e(x):
-    return kve(0, x)
+    return mparray(kve(0, x))
 
 
 def k1e(x):
-    return kve(1, x)
+    return mparray(kve(1, x))
 
 
 # others to be added

@@ -9,6 +9,7 @@ factorial2 = np.vectorize(mp.fac2)
 psi = np.vectorize(mp.digamma)
 digamma = psi
 ndtr = np.vectorize(mp.ncdf)
+gamma = np.vectorize(mp.gamma)
 gammaln = np.vectorize(mp.loggamma)
 erf = np.vectorize(mp.erf)
 erfc = np.vectorize(mp.erfc)

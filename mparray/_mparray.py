@@ -4,9 +4,7 @@ from mpmath import mp
 
 # TODO:
 #  add test suite
-#  add documentation
 #  error when special function is not available
-
 
 # Array Object (Operators, Attributes, and Methods)
 class mparray(np.ndarray):
@@ -183,6 +181,7 @@ trunc
 for f in elementwise_funcs.split():
     try:
         sys.modules[__name__].__dict__[f] = np.vectorize(getattr(mp, f))
+        sys.modules[__name__].__dict__[f].__doc__ = getattr(np, f).__doc__
     except AttributeError:
         sys.modules[__name__].__dict__[f] = getattr(np, f)
 

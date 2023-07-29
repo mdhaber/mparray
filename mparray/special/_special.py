@@ -1,7 +1,12 @@
+import sys as sys
 import numpy as np
 from mpmath import mp
 from mparray import log, exp, real, mparray
+from scipy import special
 
+# add imported names to `imports` to avoid altering their documentation
+imports = {'sys', 'np', 'mp', 'log', 'exp',
+           'real', 'mparray', 'special', 'imports'}
 
 expm1 = np.vectorize(mp.expm1)
 log1p = np.vectorize(mp.log1p)
@@ -181,3 +186,11 @@ def stdtr(df, t):
 # kolmogorov, smirnov
 # erfcinv
 # erfinv
+
+
+# generate rough documentation
+function_names = list(sys.modules[__name__].__dict__.keys())
+for key in function_names:
+    if key in imports or '_' in key:
+        continue
+    sys.modules[__name__].__dict__[key].__doc__ = getattr(special, key).__doc__

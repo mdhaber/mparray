@@ -36,7 +36,7 @@ arg01 = {'ndtri', 'logit', 'betainc'}
     ['expit', 1], ['boxcox', 2], ['boxcox1p', 2], ['ive', 2], ['i0e', 1],
     ['i1e', 1], ['kve', 2], ['k0e', 1], ['k1e', 1], ['factorial2', 1],
     ['lambertw', 2], ['logit', 1], ['ndtri', 1], ['chdtr', 2], ['chdtrc', 2],
-    ['betainc', 3], ['fdtr', 3], ['fdtrc', 3]
+    ['betainc', 3], ['fdtr', 3], ['fdtrc', 3], ['stdtr', 2]
 ])
 def test_special_real(shape, f_name, nargs):
     f_mps = getattr(mps, f_name)
@@ -84,3 +84,5 @@ def test_logsumexp(axis):
     ref = sps.logsumexp(**kwargs)
     assert_mp_type(res)
     assert_allclose(res, ref)
+
+

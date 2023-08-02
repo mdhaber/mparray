@@ -13,10 +13,25 @@ class mparray(np.ndarray):
         data = np.asarray(data)
         dtype = data.dtype
 
-        if not (np.issubdtype(dtype, np.number)
-                or np.issubdtype(dtype, np.bool_)):
+        if isinstance(data,  cls):
+            return data
+
+        if data.size == 0:
             return data.view(cls)
 
+        if not (np.issubdtype(dtype, np.number)
+                or np.issubdtype(dtype, np.bool_)):
+            shape = data.shape
+            data = data.ravel()
+            el = data[0]
+            if isinstance(el, int):
+                dtype = np.asarray(1).dtype
+            elif isinstance(el, mp.mpf):
+                dtype = np.asarray(1.).dtype
+            elif isinstance(el, mp.mpc):
+                dtype = np.asarray(1.+1j).dtype
+            data[0] = el, dtype
+            return data.reshape(shape).view(cls)
 
         if np.issubdtype(dtype, np.bool_):
             type_ = bool
@@ -32,16 +47,36 @@ class mparray(np.ndarray):
         shape = data.shape
         data = data.ravel()
         data = np.asarray([type_(x) for x in data], dtype=object)
+        data[0] = (data[0], dtype)
         return data.reshape(shape).astype(object, copy=False).view(cls)
 
     def __array_finalize__(self, obj):
-        self.dtype = np.asarray(object()).dtype
+        if isinstance(obj, type(self)):
+            dtype = obj.dtype
+        elif obj.size == 0:
+            dtype = np.array([]).dtype
+        else:
+            obj = obj.ravel()
+            tmp, dtype = obj[0]
+            obj[0] = tmp
+        self.dtype = dtype
 
     def __floordiv__(self, other):
         return np.floor(self/other)
 
     def __rfloordiv__(self, other):
         return np.floor(other/self)
+
+    def __index__(self):
+        if (np.issubdtype(self.dtype, np.integer)
+                and self.ndim == 0 and self.size == 1):
+            return super().ravel()[0]
+        else:
+            super().__index__(self)
+
+    # # how to make getitem return array sometimes but not others?
+    # def __getitem__(self, item):
+    #     return asarray(super().__getitem__(item), dtype=self.dtype)
 
     def __repr__(self):
         r = super().__repr__()
@@ -60,14 +95,9 @@ class mparray(np.ndarray):
 
 def asarray(*args, dtype=None, **kwargs):
     nparr = np.asarray(*args, **kwargs)
-
-    if dtype is None:
-        ok_dtype = (np.issubdtype(nparr.dtype, np.number) or
-                    np.issubdtype(nparr.dtype, np.bool_))
-        dtype = nparr.dtype if ok_dtype else np.asarray(1.0).dtype
-
     arr = mparray(nparr)
-    arr.dtype = dtype
+    if dtype is not None:
+        arr.dtype = dtype
     return arr
 asarray.__doc__ = np.asarray.__doc__
 
@@ -102,7 +132,7 @@ pi
 """
 
 for c in constants.split():
-    sys.modules[__name__].__dict__[c] = asarray(getattr(mp, c))
+    sys.modules[__name__].__dict__[c] = mp.mpf(getattr(mp, c))
 
 newaxis = np.newaxis
 

@@ -1,6 +1,7 @@
 import sys
 import array_api_compat.numpy as np
 from mpmath import mp
+import functools
 
 # TODO:
 #  add test suite
@@ -10,18 +11,31 @@ from mpmath import mp
 class mparray(np.ndarray):
     def __new__(cls, data):
         data = np.asarray(data)
-        if not np.issubdtype(data.dtype, np.number):
+        dtype = data.dtype
+
+        if not (np.issubdtype(dtype, np.number)
+                or np.issubdtype(dtype, np.bool_)):
             return data.view(cls)
 
-        # Only inexact dtypes can be converted directly to mpf/mpf
-        data = (data if np.issubdtype(data.dtype, np.inexact)
-                else data.astype(np.float64))
 
-        type_ = mp.mpf if np.issubdtype(data.dtype, np.floating) else mp.mpc
+        if np.issubdtype(dtype, np.bool_):
+            type_ = bool
+        if np.issubdtype(dtype, np.floating):
+            data = data.astype(np.float64)
+            type_ = mp.mpf
+        elif np.issubdtype(dtype, np.complexfloating):
+            data = data.astype(np.complex128)
+            type_ = mp.mpc
+        elif np.issubdtype(dtype, np.integer):
+            type_ = int
+
         shape = data.shape
         data = data.ravel()
-        data = np.asarray([type_(x) for x in data])
+        data = np.asarray([type_(x) for x in data], dtype=object)
         return data.reshape(shape).astype(object, copy=False).view(cls)
+
+    def __array_finalize__(self, obj):
+        self.dtype = np.asarray(object()).dtype
 
     def __floordiv__(self, other):
         return np.floor(self/other)
@@ -36,6 +50,48 @@ class mparray(np.ndarray):
         else:
             return r
 
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @dtype.setter
+    def dtype(self, val):
+        self._dtype = val
+
+def asarray(*args, dtype=None, **kwargs):
+    nparr = np.asarray(*args, **kwargs)
+
+    if dtype is None:
+        ok_dtype = (np.issubdtype(nparr.dtype, np.number) or
+                    np.issubdtype(nparr.dtype, np.bool_))
+        dtype = nparr.dtype if ok_dtype else np.asarray(1.0).dtype
+
+    arr = mparray(nparr)
+    arr.dtype = dtype
+    return arr
+asarray.__doc__ = np.asarray.__doc__
+
+def astype(x, dtype, *, copy=True):
+    return asarray(x, dtype=dtype, copy=copy)
+astype.__doc__ = np.astype.__doc__
+
+def vectorize(f):
+    vf = np.vectorize(f)
+
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        out = vf(*args, **kwargs)
+        return asarray(out)
+
+    return wrapped
+
+def ensure_mp(f):
+    @functools.wraps(f)
+    def wrapped(*args, **kwargs):
+        out = f(*args, **kwargs)
+        return asarray(out)
+
+    return wrapped
 
 # Constants
 constants = """
@@ -46,14 +102,13 @@ pi
 """
 
 for c in constants.split():
-    sys.modules[__name__].__dict__[c] = getattr(mp, c)
+    sys.modules[__name__].__dict__[c] = asarray(getattr(mp, c))
 
 newaxis = np.newaxis
 
 # Creation Functions
 creation_funcs = """
 arange
-asarray
 empty
 empty_like
 eye
@@ -72,7 +127,7 @@ zeros_like
 
 for f in creation_funcs.split():
     sys.modules[__name__].__dict__[f] = (
-        lambda *args, f=f, **kwargs: mparray(getattr(np, f)(*args, **kwargs))
+        lambda *args, f=f, **kwargs: asarray(getattr(np, f)(*args, **kwargs))
     )
 
 # Data Types to be defined
@@ -97,13 +152,16 @@ for dtype in dtypes.split():
 
 # Data type functions defined with other_funcs
 dtype_funcs = """
-astype
 can_cast
 finfo
 iinfo
 isdtype
 result_type
 """
+
+for f in dtype_funcs.split():
+    # arguably results should be converted to mpfarray if they weren't already?
+    sys.modules[__name__].__dict__[f] = getattr(np, f)
 
 # need to define these manually... or not
 # bitwise_and
@@ -180,32 +238,32 @@ trunc
 
 for f in elementwise_funcs.split():
     try:
-        sys.modules[__name__].__dict__[f] = np.vectorize(getattr(mp, f))
-        sys.modules[__name__].__dict__[f].__doc__ = getattr(np, f).__doc__
+        sys.modules[__name__].__dict__[f] = vectorize(getattr(mp, f))
     except AttributeError:
-        sys.modules[__name__].__dict__[f] = getattr(np, f)
+        sys.modules[__name__].__dict__[f] = ensure_mp(getattr(np, f))
 
-real = np.vectorize(mp.re)
-imag = np.vectorize(mp.im)
-round = np.vectorize(mp.nint)
+real = vectorize(mp.re)
+imag = vectorize(mp.im)
+round = vectorize(mp.nint)
 
+@ensure_mp
 def floor_divide(x, y):
     return x // y
 floor_divide.__doc__ = np.floor_divide.__doc__
 
-@np.vectorize
+@vectorize
 def log2(x):
     return mp.log(x) / mp.log(2)
 log2.__doc__ = np.log2.__doc__
 
-@np.vectorize
+@vectorize
 def logaddexp(a, b):
     # IIUC, logaddexp avoids overflow but doesn't improve precision.
     # mpmath doesn't overflow, so naive implementation should be OK.
     return mp.log(mp.exp(a) + mp.exp(b))
 logaddexp.__doc__ = np.logaddexp.__doc__
 
-@np.vectorize
+@vectorize
 def trunc(x):
     return mp.floor(x) if x >= 0 else mp.ceil(x)
 trunc.__doc__ = np.trunc.__doc__
@@ -251,6 +309,6 @@ all
 any
 """
 
-for f in (other_funcs + dtype_funcs).split():
+for f in (other_funcs).split():
     # arguably results should be converted to mpfarray if they weren't already?
     sys.modules[__name__].__dict__[f] = getattr(np, f)

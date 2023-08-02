@@ -1,46 +1,46 @@
 import sys as sys
 import numpy as np
 from mpmath import mp
-from mparray import log, exp, real, mparray
+from mparray import log, exp, real, asarray, vectorize
 from scipy import special
 
 # add imported names to `imports` to avoid altering their documentation
-imports = {'sys', 'np', 'mp', 'log', 'exp',
-           'real', 'mparray', 'special', 'imports'}
+imports = {'sys', 'np', 'mp', 'log', 'exp', 'vectorize',
+           'real', 'asarray', 'special', 'imports'}
 
-expm1 = np.vectorize(mp.expm1)
-log1p = np.vectorize(mp.log1p)
-factorial2 = np.vectorize(mp.fac2)
-psi = np.vectorize(mp.digamma)
+expm1 = vectorize(mp.expm1)
+log1p = vectorize(mp.log1p)
+factorial2 = vectorize(mp.fac2)
+psi = vectorize(mp.digamma)
 digamma = psi
-ndtr = np.vectorize(mp.ncdf)
-gamma = np.vectorize(mp.gamma)
-gammaln = np.vectorize(mp.loggamma)
-erf = np.vectorize(mp.erf)
-erfc = np.vectorize(mp.erfc)
-zeta = np.vectorize(mp.zeta)
-poch = np.vectorize(mp.rf)
-binom = np.vectorize(mp.binomial)
+ndtr = vectorize(mp.ncdf)
+gamma = vectorize(mp.gamma)
+gammaln = vectorize(mp.loggamma)
+erf = vectorize(mp.erf)
+erfc = vectorize(mp.erfc)
+zeta = vectorize(mp.zeta)
+poch = vectorize(mp.rf)
+binom = vectorize(mp.binomial)
 comb = binom
-lambertw = np.vectorize(mp.lambertw)
-powm1 = np.vectorize(mp.powm1)
-hyp1f1 = np.vectorize(mp.hyp1f1)
-hyp2f1 = np.vectorize(mp.hyp2f1)
-iv = np.vectorize(mp.besseli)
-kv = np.vectorize(mp.besselk)
+lambertw = vectorize(mp.lambertw)
+powm1 = vectorize(mp.powm1)
+hyp1f1 = vectorize(mp.hyp1f1)
+hyp2f1 = vectorize(mp.hyp2f1)
+iv = vectorize(mp.besseli)
+kv = vectorize(mp.besselk)
 
 
-@np.vectorize
+@vectorize
 def gammainc(x, a):
     return mp.gammainc(x, a=0, b=a, regularized=True)
 
 
-@np.vectorize
+@vectorize
 def gammaincc(x, a):
     return mp.gammainc(x, a=a, b=mp.inf, regularized=True)
 
 
-@np.vectorize
+@vectorize
 def ndtri(x):
     extra_dps = int(mp.ceil(-mp.log10(x)))
     mp.dps += extra_dps
@@ -49,7 +49,7 @@ def ndtri(x):
     return res
 
 
-@np.vectorize
+@vectorize
 def log_ndtr(x):
     if x <= 0:
         return mp.log(mp.ncdf(x))
@@ -58,37 +58,37 @@ def log_ndtr(x):
         return mp.log1p(-complement)
 
 
-@np.vectorize
+@vectorize
 def betaln(x, y):
     return mp.log(mp.beta(x, y))
 
 
-@np.vectorize
+@vectorize
 def betainc(a, b, x):
     return mp.betainc(a, b, 0, x, regularized=True)
 
 
-@np.vectorize
+@vectorize
 def fdtr(dn, dd, x):
     return mp.betainc(dn/2, dd/2, 0, x*dn/(dd + x*dn), regularized=True)
 
 
-@np.vectorize
+@vectorize
 def fdtrc(dn, dd, x):
     return mp.betainc(dn/2, dd/2, x*dn/(dd + x*dn), 1, regularized=True)
 
 
-@np.vectorize
+@vectorize
 def xlogy(x, y):  # needs accuracy review
     return x*mp.log(y)
 
 
-@np.vectorize
+@vectorize
 def xlog1py(x, y):  # needs accuracy review
-    return x*log1p(y)
+    return x*mp.log1p(y)
 
 
-@np.vectorize
+@vectorize
 def cosm1(x):
     # second term in cosine series is x**2/2
     extra_dps = 2*int(mp.ceil(-mp.log10(x))) + 1
@@ -98,18 +98,18 @@ def cosm1(x):
     return res
 
 
-@np.vectorize
+@vectorize
 def logit(x):  # needs accuracy review
     res = mp.log(x) - mp.log1p(-x)
     return res
 
 
-@np.vectorize
+@vectorize
 def expit(x):  # needs accuracy review
     return mp.exp(x - mp.log1p(mp.exp(x)))
 
 
-@np.vectorize
+@vectorize
 def boxcox(x, lmbda):  # needs accuracy review
     """
     y = (x**lmbda - 1) / lmbda  if lmbda != 0
@@ -132,35 +132,35 @@ def logsumexp(a, axis=None, b=None):
 
 
 def ive(v, z):
-    return mparray(iv(v, z) * exp(-abs(real(z))))
+    return asarray(iv(v, z) * exp(-abs(real(z))))
 
 
 def i0e(x):
-    return mparray(ive(0, x))
+    return asarray(ive(0, x))
 
 
 def i1e(x):
-    return mparray(ive(1, x))
+    return asarray(ive(1, x))
 
 
 def kve(v, z):
-    return mparray(kv(v, z) * exp(z))
+    return asarray(kv(v, z) * exp(z))
 
 
 def k0e(x):
-    return mparray(kve(0, x))
+    return asarray(kve(0, x))
 
 
 def k1e(x):
-    return mparray(kve(1, x))
+    return asarray(kve(1, x))
 
 
 def chdtr(v, x):
-    return mparray(gammainc(v / 2, x / 2))
+    return asarray(gammainc(v / 2, x / 2))
 
 
 def chdtrc(v, x):
-    return mparray(gammaincc(v / 2, x / 2))
+    return asarray(gammaincc(v / 2, x / 2))
 
 
 def stdtr(df, t):

@@ -7,63 +7,83 @@ import functools
 #  add test suite
 #  error when special function is not available
 
+class mybool(int):
+    ndim = 0
+    size = 1
+    shape = tuple()
+    dtype = None
+
+class myint(int):
+    ndim = 0
+    size = 1
+    shape = tuple()
+    dtype = None
+
+class mympf(mp.mpf):
+    ndim = 0
+    size = 1
+    shape = tuple()
+    dtype = None
+
+class mympc(mp.mpc):
+    ndim = 0
+    size = 1
+    shape = tuple()
+    dtype = None
+
+def _ensure_dtype(arr, dtype=None):
+
+    data = arr.ravel()
+    data.dtype = arr.dtype
+    el = np.asarray(data[0])
+    dtype = dtype or el.dtype
+
+    if np.issubdtype(dtype, np.bool_):
+        type_ = mybool
+    elif np.issubdtype(dtype, np.floating):
+        type_ = lambda x: mympf(np.float64(x))
+    elif np.issubdtype(dtype, np.complexfloating):
+        type_ = lambda x: mympc(np.complex128(x))
+    elif np.issubdtype(dtype, np.integer):
+        type_ = myint
+    elif isinstance(el[()], mp.mpf):
+        type_ = mympf
+    elif isinstance(el[()], mp.mpc):
+        type_ = mympc
+    else:
+        type_ = type(data[0])
+
+    for i in range(data.size):
+        data[i] = type_(data[i])
+        data[i].dtype = dtype
+
+    return dtype
+
+
 # Array Object (Operators, Attributes, and Methods)
 class mparray(np.ndarray):
+    _dtype = None
+    _finalized = False
+
     def __new__(cls, data):
-        data = np.asarray(data)
-        dtype = data.dtype
 
         if isinstance(data, cls):
             return data
 
-        if data.size == 0:
-            return data.view(cls)
-
-        if not (np.issubdtype(dtype, np.number)
-                or np.issubdtype(dtype, np.bool_)):
-            shape = data.shape
-            data = data.ravel()
-            el = data[0]
-            if isinstance(el, int):
-                dtype = np.asarray(1).dtype
-            elif isinstance(el, mp.mpf):
-                dtype = np.asarray(1.).dtype
-            elif isinstance(el, mp.mpc):
-                dtype = np.asarray(1.+1j).dtype
-            data[0] = el, dtype
-            return data.reshape(shape).view(cls)
-
-        if np.issubdtype(dtype, np.bool_):
-            type_ = bool
-        if np.issubdtype(dtype, np.floating):
-            data = data.astype(np.float64)
-            type_ = mp.mpf
-        elif np.issubdtype(dtype, np.complexfloating):
-            data = data.astype(np.complex128)
-            type_ = mp.mpc
-        elif np.issubdtype(dtype, np.integer):
-            type_ = int
-
-        shape = data.shape
-        if shape:
-            data = np.asarray([type_(x[()]) for x in data.ravel()],
-                              dtype=object)
-        else:
-            data = np.asarray(type_(data[()]), dtype=object)
-        data = data.ravel()
-        data[0] = (data[0], dtype)
-        return data.reshape(shape).astype(object, copy=False).view(cls)
+        return np.array(data, dtype=np.object_).view(cls)
 
     def __array_finalize__(self, obj):
+
         if isinstance(obj, type(self)):
-            dtype = obj.dtype
-        elif obj.size == 0:
-            dtype = np.array([]).dtype
-        else:
-            obj = obj.ravel()
-            tmp, dtype = obj[0]
-            obj[0] = tmp
+            return
+
+        if obj.size == 0:
+            self.dtype = np.array([]).dtype
+            return
+
+        dtype = _ensure_dtype(obj)
         self.dtype = dtype
+        self._finalized = True
 
     def __floordiv__(self, other):
         return np.floor(self/other)
@@ -78,15 +98,15 @@ class mparray(np.ndarray):
         else:
             super().__index__(self)
 
-    # how to make getitem return array sometimes but not others?
-    def __getitem__(self, item):
-        if self.shape == item == tuple():
-            return self
-        else:
-            el = super().__getitem__(item)
-            if isinstance(el, mparray):
-                el.dtype = self.dtype
-            return el
+    # # how to make getitem return array sometimes but not others?
+    # def __getitem__(self, item):
+    #     if self.shape == item == tuple():
+    #         return self
+    #     else:
+    #         el = super().__getitem__(item)
+    #         if isinstance(el, mparray):
+    #             el.dtype = self.dtype
+    #         return el
 
     def __repr__(self):
         r = super().__repr__()
@@ -104,14 +124,12 @@ class mparray(np.ndarray):
         self._dtype = val
 
 def asarray(data, *args, dtype=None, **kwargs):
-    old_dtype = getattr(data, 'dtype', None)
-    nparr = np.asarray(data, *args, **kwargs)
-    arr = mparray(nparr)
-    if old_dtype is not None:
-        arr.dtype = old_dtype
-    if dtype is not None:
-        arr.dtype = dtype
-    return arr
+    data = mparray(data)
+    dtype = _ensure_dtype(data, dtype or data.dtype)
+    data._finalized = True
+    data.dtype = dtype
+    return data
+
 asarray.__doc__ = np.asarray.__doc__
 
 def astype(x, dtype, *, copy=True):
@@ -122,8 +140,8 @@ def vectorize(f):
     vf = np.vectorize(f)
 
     @functools.wraps(f)
-    def wrapped(*args, **kwargs):
-        out = vf(*args, **kwargs)
+    def wrapped(x, *args, **kwargs):
+        out = vf(x, *args, **kwargs)
         return asarray(out)
 
     return wrapped
@@ -145,7 +163,8 @@ pi
 """
 
 for c in constants.split():
-    sys.modules[__name__].__dict__[c] = mparray(mp.mpf(getattr(mp, c)))
+    sys.modules[__name__].__dict__[c] = mympf(getattr(mp, c))
+    sys.modules[__name__].__dict__[c].dtype = np.float64
 
 newaxis = np.newaxis
 

@@ -6,8 +6,8 @@ from mparray import special as mps
 
 
 def assert_allclose(res, ref):
-    res = (res.astype(np.float64) if np.all(mps.real(res) == res)
-           else res.astype(np.complex128))
+    res = (np.asarray(res, dtype=np.float64) if np.all(mps.real(res) == res)
+           else np.asarray(res, dtype=np.complex128))
     assert np.all(np.isfinite(res) & (res != 0) & (res != 1))
     np.testing.assert_allclose(res, ref)
 

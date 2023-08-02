@@ -13,7 +13,7 @@ class mparray(np.ndarray):
         data = np.asarray(data)
         dtype = data.dtype
 
-        if isinstance(data,  cls):
+        if isinstance(data, cls):
             return data
 
         if data.size == 0:
@@ -45,8 +45,12 @@ class mparray(np.ndarray):
             type_ = int
 
         shape = data.shape
+        if shape:
+            data = np.asarray([type_(x[()]) for x in data.ravel()],
+                              dtype=object)
+        else:
+            data = np.asarray(type_(data[()]), dtype=object)
         data = data.ravel()
-        data = np.asarray([type_(x) for x in data], dtype=object)
         data[0] = (data[0], dtype)
         return data.reshape(shape).astype(object, copy=False).view(cls)
 
@@ -70,13 +74,19 @@ class mparray(np.ndarray):
     def __index__(self):
         if (np.issubdtype(self.dtype, np.integer)
                 and self.ndim == 0 and self.size == 1):
-            return super().ravel()[0]
+            return int(self.item())
         else:
             super().__index__(self)
 
-    # # how to make getitem return array sometimes but not others?
-    # def __getitem__(self, item):
-    #     return asarray(super().__getitem__(item), dtype=self.dtype)
+    # how to make getitem return array sometimes but not others?
+    def __getitem__(self, item):
+        if self.shape == item == tuple():
+            return self
+        else:
+            el = super().__getitem__(item)
+            if isinstance(el, mparray):
+                el.dtype = self.dtype
+            return el
 
     def __repr__(self):
         r = super().__repr__()
@@ -93,9 +103,12 @@ class mparray(np.ndarray):
     def dtype(self, val):
         self._dtype = val
 
-def asarray(*args, dtype=None, **kwargs):
-    nparr = np.asarray(*args, **kwargs)
+def asarray(data, *args, dtype=None, **kwargs):
+    old_dtype = getattr(data, 'dtype', None)
+    nparr = np.asarray(data, *args, **kwargs)
     arr = mparray(nparr)
+    if old_dtype is not None:
+        arr.dtype = old_dtype
     if dtype is not None:
         arr.dtype = dtype
     return arr
@@ -132,7 +145,7 @@ pi
 """
 
 for c in constants.split():
-    sys.modules[__name__].__dict__[c] = mp.mpf(getattr(mp, c))
+    sys.modules[__name__].__dict__[c] = mparray(mp.mpf(getattr(mp, c)))
 
 newaxis = np.newaxis
 
@@ -157,7 +170,7 @@ zeros_like
 
 for f in creation_funcs.split():
     sys.modules[__name__].__dict__[f] = (
-        lambda *args, f=f, **kwargs: asarray(getattr(np, f)(*args, **kwargs))
+        lambda *args, f=f, dtype=None, **kwargs: asarray(getattr(np, f)(*args, dtype=dtype, **kwargs), dtype=dtype)
     )
 
 # Data Types to be defined

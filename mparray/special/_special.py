@@ -50,10 +50,8 @@ def ndtri(x):
         return mp.nan
 
     extra_dps = int(mp.ceil(-mp.log10(x)))
-    mp.dps += extra_dps
-    res = mp.sqrt(2) * mp.erfinv(2 * x - mp.one)
-    mp.dps -= extra_dps
-    return res
+    with mp.workdps(mp.dps + extra_dps):
+        return mp.sqrt(2) * mp.erfinv(2 * x - mp.one)
 
 
 @vectorize

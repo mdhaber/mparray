@@ -31,13 +31,13 @@ kv = vectorize(mp.besselk)
 
 
 @vectorize
-def gammainc(x, a):
-    return mp.gammainc(x, a=0, b=a, regularized=True)
+def gammainc(a, x):
+    return mp.gammainc(a, a=0, b=x, regularized=True)
 
 
 @vectorize
-def gammaincc(x, a):
-    return mp.gammainc(x, a=a, b=mp.inf, regularized=True)
+def gammaincc(a, x):
+    return mp.gammainc(a, a=x, b=mp.inf, regularized=True)
 
 
 @vectorize

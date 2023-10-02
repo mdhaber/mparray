@@ -42,6 +42,13 @@ def gammaincc(a, x):
 
 @vectorize
 def ndtri(x):
+    if x == 0:
+        return -mp.inf
+    if x == 1:
+        return mp.inf
+    if x < 0 or x > 1:
+        return mp.nan
+
     extra_dps = int(mp.ceil(-mp.log10(x)))
     mp.dps += extra_dps
     res = mp.sqrt(2) * mp.erfinv(2 * x - mp.one)

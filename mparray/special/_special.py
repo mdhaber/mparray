@@ -99,12 +99,15 @@ def xlog1py(x, y):  # needs accuracy review
 
 @vectorize
 def cosm1(x):
+    if x == 0:
+        return mp.zero
     # second term in cosine series is x**2/2
-    extra_dps = 2*int(mp.ceil(-mp.log10(x))) + 1
-    mp.dps += extra_dps
-    res = mp.cos(x) - mp.one
-    mp.dps -= extra_dps
-    return res
+    # catastrophic cancellation also occurs near nonzero multiples of 2*pi,
+    # but doubling precision is enough here. We are being conservative by
+    # always at least doubling the precision.
+    extra_dps = max(mp.dps, 2*int(mp.ceil(-mp.log10(x))) + 1)
+    with mp.workdps(mp.dps + extra_dps):
+        return mp.cos(x) - mp.one
 
 
 @vectorize

@@ -70,10 +70,6 @@ def betaln(x, y):
 
 @vectorize
 def betainc(a, b, x):
-    if x < 0 or x > 1:
-        # The mpmath betainc implementation is defined on entire real line,
-        # (and the complex plane). We want to match scipy.special.betainc.
-        return mp.nan
     return mp.betainc(a, b, 0, x, regularized=True)
 
 
@@ -99,8 +95,6 @@ def xlog1py(x, y):  # needs accuracy review
 
 @vectorize
 def cosm1(x):
-    if x == 0:
-        return mp.zero
     # second term in cosine series is x**2/2
     # catastrophic cancellation also occurs near nonzero multiples of 2*pi,
     # but doubling precision is enough here. We are being conservative by

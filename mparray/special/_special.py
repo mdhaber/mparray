@@ -95,6 +95,9 @@ def xlog1py(x, y):  # needs accuracy review
 
 @vectorize
 def cosm1(x):
+    if x == 0:
+        # Handle this case separately to avoid blow up in extra_dps calculation.
+        return mp.zero
     # second term in cosine series is x**2/2
     # catastrophic cancellation also occurs near nonzero multiples of 2*pi,
     # but doubling precision is enough here. We are being conservative by

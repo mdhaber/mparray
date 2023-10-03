@@ -31,22 +31,27 @@ kv = vectorize(mp.besselk)
 
 
 @vectorize
-def gammainc(x, a):
-    return mp.gammainc(x, a=0, b=a, regularized=True)
+def gammainc(a, x):
+    return mp.gammainc(a, a=0, b=x, regularized=True)
 
 
 @vectorize
-def gammaincc(x, a):
-    return mp.gammainc(x, a=a, b=mp.inf, regularized=True)
+def gammaincc(a, x):
+    return mp.gammainc(a, a=x, b=mp.inf, regularized=True)
 
 
 @vectorize
 def ndtri(x):
+    if x == 0:
+        return -mp.inf
+    if x == 1:
+        return mp.inf
+    if x < 0 or x > 1:
+        return mp.nan
+
     extra_dps = int(mp.ceil(-mp.log10(x)))
-    mp.dps += extra_dps
-    res = mp.sqrt(2) * mp.erfinv(2 * x - mp.one)
-    mp.dps -= extra_dps
-    return res
+    with mp.workdps(mp.dps + extra_dps):
+        return mp.sqrt(2) * mp.erfinv(2 * x - mp.one)
 
 
 @vectorize
@@ -90,12 +95,16 @@ def xlog1py(x, y):  # needs accuracy review
 
 @vectorize
 def cosm1(x):
+    if x == 0:
+        # Handle this case separately to avoid blow up in extra_dps calculation.
+        return mp.zero
     # second term in cosine series is x**2/2
-    extra_dps = 2*int(mp.ceil(-mp.log10(x))) + 1
-    mp.dps += extra_dps
-    res = mp.cos(x) - mp.one
-    mp.dps -= extra_dps
-    return res
+    # catastrophic cancellation also occurs near nonzero multiples of 2*pi,
+    # but doubling precision is enough here. We are being conservative by
+    # always at least doubling the precision.
+    extra_dps = max(mp.dps, 2*int(mp.ceil(-mp.log10(x))) + 1)
+    with mp.workdps(mp.dps + extra_dps):
+        return mp.cos(x) - mp.one
 
 
 @vectorize
@@ -109,20 +118,32 @@ def expit(x):  # needs accuracy review
     return mp.exp(x - mp.log1p(mp.exp(x)))
 
 
-@vectorize
-def boxcox(x, lmbda):  # needs accuracy review
+def _boxcox_scalar(x, lmbda):
     """
     y = (x**lmbda - 1) / lmbda  if lmbda != 0
         log(x)                  if lmbda == 0
     """
+    if x < 0:
+        return mp.nan
     if lmbda != 0:
         return mp.powm1(x, lmbda) / lmbda
     else:
-        return mp.lmbda(x)
+        return mp.log(x)
 
 
-def boxcox1p(x, lmbda):  # needs accuracy review
-    return boxcox(mp.one + x, lmbda)
+@vectorize
+def boxcox(x, lmbda):
+    return _boxcox_scalar(x, lmbda)
+
+
+@vectorize
+def boxcox1p(x, lmbda):
+    if x == 0:
+        # Handle x = 0 separately to avoid blow up in extra_dps calculation.
+        return mp.zero
+    extra_dps = max(0, int(mp.ceil(-mp.log10(abs(x)))))
+    with mp.workdps(mp.dps + extra_dps):
+        return _boxcox_scalar(mp.one + x, lmbda)
 
 
 def logsumexp(a, axis=None, b=None):

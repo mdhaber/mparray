@@ -136,9 +136,11 @@ def boxcox(x, lmbda):
     return _boxcox_scalar(x, lmbda)
 
 
+@vectorize
 def boxcox1p(x, lmbda):
-    if x < - 1:
-        return mp.nan
+    if x == 0:
+        # Handle x = 0 separately to avoid blow up in extra_dps calculation.
+        return mp.zero
     extra_dps = max(0, int(mp.ceil(-mp.log10(abs(x)))))
     with mp.workdps(mp.dps + extra_dps):
         return _boxcox_scalar(mp.one + x, lmbda)

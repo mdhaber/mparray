@@ -1,0 +1,16 @@
+# Adapted from https://github.com/scipy/scipy/blob/main/environment.yml
+# To use:
+#   $ conda env create -f environment.yml
+#   $ conda activate mparray-dev
+#
+name: mparray-dev
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - pytest
+  - hypothesis
+  - array-api-compat
+  - numpy
+  - mpmath
+  - scipy

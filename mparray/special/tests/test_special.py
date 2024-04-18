@@ -84,5 +84,3 @@ def test_logsumexp(axis):
     ref = sps.logsumexp(**kwargs)
     assert_mp_type(res)
     assert_allclose(res, ref)
-
-

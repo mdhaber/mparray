@@ -7,106 +7,44 @@ import functools
 #  add test suite
 #  error when special function is not available
 
-class mybool(int):
-    ndim = 0
-    size = 1
-    shape = tuple()
-    dtype = None
-
-class myint(int):
-    ndim = 0
-    size = 1
-    shape = tuple()
-    dtype = None
-
-class mympf(mp.mpf):
-    ndim = 0
-    size = 1
-    shape = tuple()
-    dtype = None
-
-class mympc(mp.mpc):
-    ndim = 0
-    size = 1
-    shape = tuple()
-    dtype = None
-
-def _ensure_dtype(arr, dtype=None):
-
-    data = arr.ravel()
-    data.dtype = arr.dtype
-    el = np.asarray(data[0])
-    dtype = dtype or el.dtype
-
-    if np.issubdtype(dtype, np.bool_):
-        type_ = mybool
-    elif np.issubdtype(dtype, np.floating):
-        type_ = lambda x: mympf(np.float64(x))
-    elif np.issubdtype(dtype, np.complexfloating):
-        type_ = lambda x: mympc(np.complex128(x))
-    elif np.issubdtype(dtype, np.integer):
-        type_ = myint
-    elif isinstance(el[()], mp.mpf):
-        type_ = mympf
-    elif isinstance(el[()], mp.mpc):
-        type_ = mympc
-    else:
-        type_ = type(data[0])
-
-    for i in range(data.size):
-        data[i] = type_(data[i])
-        data[i].dtype = dtype
-
-    return dtype
-
-
 # Array Object (Operators, Attributes, and Methods)
 class mparray(np.ndarray):
-    _dtype = None
-    _finalized = False
-
     def __new__(cls, data):
-
         if isinstance(data, cls):
             return data
 
-        return np.array(data, dtype=np.object_).view(cls)
+        data = np.asarray(data)
 
-    def __array_finalize__(self, obj):
+        message = ("This library is for getting real work done. "
+                   "Pathological, useless input is not supported.")
+        if data.size == 0:
+            raise ValueError(message)
 
-        if isinstance(obj, type(self)):
-            return
+        shape = data.shape
+        data = data.ravel()
+        el = data[0]
+        dtype = type(el)
 
-        if obj.size == 0:
-            self.dtype = np.array([]).dtype
-            return
+        if np.issubdtype(dtype, np.floating):
+            data = data.astype(np.float64)
+            dtype = mp.mpf
+        elif np.issubdtype(dtype, np.complexfloating):
+            data = data.astype(np.complex128)
+            dtype = mp.mpc
+        elif np.issubdtype(dtype, np.integer):
+            dtype = int
 
-        dtype = _ensure_dtype(obj)
-        self.dtype = dtype
-        self._finalized = True
+        data = np.asarray([dtype(el) for el in data], dtype=object)
+        return data.reshape(shape).view(cls)
+
+    def __init__(self, data):
+        self._dtype = type(self.ravel()[0])
 
     def __floordiv__(self, other):
         return np.floor(self/other)
 
     def __rfloordiv__(self, other):
         return np.floor(other/self)
-
-    def __index__(self):
-        if (np.issubdtype(self.dtype, np.integer)
-                and self.ndim == 0 and self.size == 1):
-            return int(self.item())
-        else:
-            super().__index__(self)
-
-    # # how to make getitem return array sometimes but not others?
-    # def __getitem__(self, item):
-    #     if self.shape == item == tuple():
-    #         return self
-    #     else:
-    #         el = super().__getitem__(item)
-    #         if isinstance(el, mparray):
-    #             el.dtype = self.dtype
-    #         return el
 
     def __repr__(self):
         r = super().__repr__()
@@ -115,21 +53,8 @@ class mparray(np.ndarray):
         else:
             return r
 
-    @property
-    def dtype(self):
-        return self._dtype
-
-    @dtype.setter
-    def dtype(self, val):
-        self._dtype = val
-
-def asarray(data, *args, dtype=None, **kwargs):
-    data = mparray(data)
-    dtype = _ensure_dtype(data, dtype or data.dtype)
-    data._finalized = True
-    data.dtype = dtype
-    return data
-
+def asarray(*args, **kwargs):
+    return mparray(np.asarray(*args, **kwargs))
 asarray.__doc__ = np.asarray.__doc__
 
 def astype(x, dtype, *, copy=True):
@@ -154,6 +79,14 @@ def ensure_mp(f):
 
     return wrapped
 
+
+sys.modules[__name__].__dict__['mpf'] = mp.mpf
+sys.modules[__name__].__dict__['mpc'] = mp.mpc
+
+def dps(n):
+    """Set mpmath.dps to the specified number of digits"""
+    mp.dps = n
+
 # Constants
 constants = """
 e
@@ -163,8 +96,7 @@ pi
 """
 
 for c in constants.split():
-    sys.modules[__name__].__dict__[c] = mympf(getattr(mp, c))
-    sys.modules[__name__].__dict__[c].dtype = np.float64
+    sys.modules[__name__].__dict__[c] = asarray(mp.mpf(getattr(mp, c)))
 
 newaxis = np.newaxis
 
@@ -191,26 +123,6 @@ for f in creation_funcs.split():
     sys.modules[__name__].__dict__[f] = (
         lambda *args, f=f, dtype=None, **kwargs: asarray(getattr(np, f)(*args, dtype=dtype, **kwargs), dtype=dtype)
     )
-
-# Data Types to be defined
-dtypes = """
-bool
-int8
-int16
-int32
-int64
-uint8
-uint16
-uint32
-uint64
-float32
-float64
-complex64
-complex128
-"""
-
-for dtype in dtypes.split():
-    sys.modules[__name__].__dict__[dtype] = getattr(np, dtype)
 
 # Data type functions defined with other_funcs
 dtype_funcs = """

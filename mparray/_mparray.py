@@ -1,11 +1,52 @@
 import sys
 import array_api_compat.numpy as np
+import numpy.testing
 from mpmath import mp
 import functools
 
 # TODO:
 #  add test suite
+#  allow each element of array to be different type?
 #  error when special function is not available
+
+
+def mptype(x):
+    el = np.asarray(x).ravel()[0]
+
+    if isinstance(el, int):
+        return int
+    if isinstance(el, mp.mpf):
+        return mp.mpf
+    if isinstance(el, mp.mpc):
+        return mp.mpc
+    elif np.issubdtype(el.dtype, np.integer):
+        return int
+    if np.issubdtype(el.dtype, np.floating):
+        return mp.mpf
+    elif np.issubdtype(el.dtype, np.complexfloating):
+        return mp.mpc
+    else:
+        raise ValueError("Unrecognized type")
+
+
+def nptype(x):
+    el = np.asarray(x).ravel()[0]
+
+    if isinstance(el, int):
+        return np.int64
+    if isinstance(el, mp.mpf):
+        return np.float64
+    if isinstance(el, mp.mpc):
+        return np.complex128
+    elif np.issubdtype(el.dtype, np.integer):
+        return np.int64
+    if np.issubdtype(el.dtype, np.floating):
+        return np.float64
+    elif np.issubdtype(el.dtype, np.complexfloating):
+        return np.complex128
+    else:
+        raise ValueError("Unrecognized type")
+
 
 # Array Object (Operators, Attributes, and Methods)
 class mparray(np.ndarray):
@@ -13,7 +54,7 @@ class mparray(np.ndarray):
         if isinstance(data, cls):
             return data
 
-        data = np.asarray(data)
+        data = np.asarray(data, dtype=object)
 
         message = ("This library is for getting real work done. "
                    "Pathological, useless input is not supported.")
@@ -31,7 +72,8 @@ class mparray(np.ndarray):
         elif np.issubdtype(dtype, np.complexfloating):
             data = data.astype(np.complex128)
             dtype = mp.mpc
-        elif np.issubdtype(dtype, np.integer):
+        elif not isinstance(el, int) and np.issubdtype(dtype, np.integer):
+            data = data.astype(np.int64)
             dtype = int
 
         data = np.asarray([dtype(el) for el in data], dtype=object)
@@ -53,8 +95,17 @@ class mparray(np.ndarray):
         else:
             return r
 
-def asarray(*args, **kwargs):
-    return mparray(np.asarray(*args, **kwargs))
+def asarray(*args, dtype=None, **kwargs):
+    res = np.asarray(*args, dtype=object, **kwargs)
+
+    shape = res.shape
+    res = res.ravel()
+    for i in range(res.size):
+        t = mptype(res[i]) if dtype is None else mptype(dtype(res[i]))
+        res[i] = t(res[i])
+    res = res.reshape(shape)
+
+    return mparray(res)
 asarray.__doc__ = np.asarray.__doc__
 
 def astype(x, dtype, *, copy=True):
@@ -286,3 +337,45 @@ any
 for f in (other_funcs).split():
     # arguably results should be converted to mpfarray if they weren't already?
     sys.modules[__name__].__dict__[f] = getattr(np, f)
+
+def asnumpy(x):
+    return np.asarray(x, dtype=nptype(x))
+
+
+def assert_allclose(res, ref,
+                    check_type=True, check_shape=True, check_trivial=False):
+
+    if check_type:
+        assert_mptype(res)
+        message = "`res` mptype does not match `ref` mptype."
+        resb, refb = np.broadcast_arrays(res, ref)
+        for resi, refi in zip(resb.ravel(), refb.ravel()):
+            assert mptype(resi) == mptype(refi), message
+
+    if check_trivial:
+        assert_nontrival(res)
+
+    if check_shape:
+        message = "`res.shape` != `ref.shape`."
+        assert res.shape == ref.shape, message
+
+    numpy.testing.assert_allclose(asnumpy(res), ref)
+
+
+def assert_nontrival(res):
+    res = asnumpy(res)
+    message = "`res` contains trivial values."
+    assert np.all(np.isfinite(res) & (res != 0) & (res != 1)), message
+
+
+def assert_mptype(res):
+
+    message = "`res` is not an mparray."
+    assert isinstance(res, mparray), message
+
+    for resi in res.ravel():
+        message = "`res` dtype is not an mptype."
+        assert (isinstance(resi, int)
+                or isinstance(resi, mp.mpf)
+                or isinstance(resi, mp.mpc)
+                or isinstance(resi, mp.constant)), message

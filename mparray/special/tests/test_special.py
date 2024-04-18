@@ -2,21 +2,7 @@ import pytest
 import numpy as np
 from mpmath import mp
 from scipy import special as sps
-from mparray import special as mps
-
-
-def assert_allclose(res, ref):
-    res = (np.asarray(res, dtype=np.float64) if np.all(mps.real(res) == res)
-           else np.asarray(res, dtype=np.complex128))
-    assert np.all(np.isfinite(res) & (res != 0) & (res != 1))
-    np.testing.assert_allclose(res, ref)
-
-
-def assert_mp_type(res):
-    res0 = res[0] if res.ndim > 0 else res[()]
-    assert (isinstance(res0, mp.mpf)
-            or isinstance(res0, mp.mpc)
-            or isinstance(res0, mp.constant))
+from mparray import special as mps, assert_allclose, assert_nontrival
 
 
 # these arguments happen to work for most functions
@@ -51,8 +37,7 @@ def test_special_real(shape, f_name, nargs):
     args = [np.broadcast_to(arg, shape)[()] for arg in args]
 
     res, ref = f_mps(*args), f_sps(*args)
-    assert_mp_type(res)
-    assert_allclose(res, ref)
+    assert_allclose(res, ref, check_type=True, check_shape=True, check_trivial=True)
 
 
 @pytest.mark.parametrize('case', [
@@ -69,8 +54,7 @@ def test_special_edge(case):
     f_sps = getattr(sps, f_name)
 
     res, ref = f_mps(*args), f_sps(*args)
-    assert_mp_type(res)
-    assert_allclose(res, ref)
+    assert_allclose(res, ref, check_type=True, check_shape=True, check_trivial=True)
 
 
 @pytest.mark.parametrize('axis', (0, 1))
@@ -82,5 +66,4 @@ def test_logsumexp(axis):
     kwargs = dict(a=a, axis=axis, b=b)
     res = mps.logsumexp(**kwargs)
     ref = sps.logsumexp(**kwargs)
-    assert_mp_type(res)
-    assert_allclose(res, ref)
+    assert_allclose(res, ref, check_type=True, check_shape=True, check_trivial=True)

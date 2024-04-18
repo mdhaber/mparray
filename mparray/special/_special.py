@@ -187,7 +187,7 @@ def chdtrc(v, x):
 def stdtr(df, t):
     x = df / (t**2 + df)
     p = betainc(df/2, mp.one/2, x)/2
-    return np.where(t < 0, p, mp.one - p)
+    return asarray(np.where(t < 0, p, mp.one - p))
 
 
 # others to be added

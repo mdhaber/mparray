@@ -1,7 +1,8 @@
 import pytest
 import numpy as np
-import mparray as mp
-from mparray import assert_allclose
+from mpmath import mp
+import mparray as xp
+# from mparray import assert_allclose
 
 
 nptypes = [# np.int8, np.int16, np.int32, np.int64,
@@ -96,10 +97,10 @@ def test_mparray(nptype):
 
 def test_mparray_preserve_precision():
     x = int(np.iinfo(np.uint64).max) + 1
-    assert mp.asarray([x])[0] == x
+    assert xp.asarray([x])[0] == x
 
     x = mp.mpf(np.finfo(np.float64).max) + 1
-    assert mp.mparray([x])[0] == x
+    assert xp.asarray([x])[0] == x
 
     x = mp.mpc(np.finfo(np.float64).max + 0j) + 1
-    assert mp.mparray([x])[0] == x
+    assert xp.asarray([x])[0] == x

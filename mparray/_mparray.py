@@ -123,16 +123,16 @@ class MPArray:
 
     # ## Linear Algebra Methods ##
     def __matmul__(self, other):
-        return mod.matmul(self, other)
+        return matmul(self, other)
 
     def __imatmul__(self, other):
-        res = mod.matmul(self, other)
+        res = matmul(self, other)
         self._data[...] = res.data[...]
         return
 
     def __rmatmul__(self, other):
         other = asarray(other)
-        return mod.matmul(other, self)
+        return matmul(other, self)
 
     ## Attributes ##
 
@@ -142,7 +142,7 @@ class MPArray:
 
     @property
     def mT(self):
-        return mod.matrix_transpose(self)
+        return matrix_transpose(self)
 
     # dlpack
     def __dlpack_device__(self):
@@ -248,7 +248,7 @@ for name in creation_functions_like:
 
 def full(shape, fill_value, *, dtype=None, device=None):
     dtype = result_type(fill_value) if dtype is None else dtype
-    res = mod.ones(shape, dtype=dtype, device=device)
+    res = ones(shape, dtype=dtype, device=device)
     res[...] = fill_value
     return res
 
@@ -257,7 +257,7 @@ def full_like(x, /, fill_value, **kwargs):
     kwds = dict(shape=x.shape, dtype=x.dtype, device=x.device)
     kwds.update(kwargs)
     shape = kwds.pop('shape')
-    return mod.full(shape, fill_value, **kwargs)
+    return full(shape, fill_value, **kwds)
 
 
 ## Data Type Functions and Data Types ##
@@ -317,8 +317,8 @@ mp.reciprocal = lambda x: 1 / x  # lazy!
 mp.logaddexp = lambda x, y: mp.log(mp.exp(x) + mp.exp(y))
 mp.imag = lambda x: x.imag
 mp.real = lambda x: x.real
-mp.trunc = lambda x: mp.floor(x) if x > 0 else mp.ceil(x)
 mp.round = lambda x: mp.nint(x)
+mp.trunc = lambda x: mp.floor(x) if x > 0 else mp.ceil(x)
 elementwise_mp = ['acos', 'acosh', 'asin', 'asinh', 'atan', 'atan2', 'atanh', 'cos',
                   'cosh', 'divide', 'exp', 'expm1', 'hypot', 'log', 'log1p', 'log2',
                   'log10', 'logaddexp', 'reciprocal', 'sin', 'sinh', 'sqrt', 'tan',
@@ -335,7 +335,9 @@ for name in elementwise_mp + elementwise_mp_float:
         data = (_get_data(arg) for arg in args)
         out = np.vectorize(getattr(mp, name), otypes=[object])(*data, **kwargs)
         # TODO: preserve complex output dtype for funcs like acos
-        return asarray(out, dtype=args[0].dtype)
+
+        dtype = (np.float64 if "128" in str(args[0].dtype) else np.float32) if name in {'imag', 'real'} else args[0].dtype
+        return asarray(out, dtype=dtype)
     mod[name] = fun
 
 
@@ -344,7 +346,7 @@ for name in elementwise_is:
     def fun(arg, name=name, **kwargs):
         arg = asarray(arg)
         if np.isdtype(arg.dtype, ('bool', 'integral')):
-            return mod.full_like(arg, name=='isfinite', dtype=np.bool)
+            return full_like(arg, name=='isfinite', dtype=np.bool)
 
         out = np.vectorize(getattr(mp, name), otypes=[bool])(_get_data(arg), **kwargs)
         return asarray(out, dtype=np.bool)
@@ -353,12 +355,12 @@ for name in elementwise_is:
 
 def floor_divide(x1, x2, /):
     x1, x2 = _promote(x1, x2)
-    return asarray(mod.floor(x1 / x2), dtype=x1.dtype)
+    return asarray(floor(x1 / x2), dtype=x1.dtype)
 
 
 def sign(x, /):
     x = asarray(x)
-    if mod.isdtype(x.dtype, ('bool', 'integral')):
+    if isdtype(x.dtype, ('bool', 'integral')):
         return asarray(np.sign(x._data), dtype=x.dtype)
     return asarray(_vectorize(mp.sign, otypes=[object])(x), dtype=x.dtype)
 
@@ -373,8 +375,8 @@ def copysign(x1, x2, /):
 
 def nextafter(x1, x2, /):
     x1, x2 = asarray(x1), asarray(x2)
-    inc = 10 ** (mod.floor(mod.log10(x1)) - mp.dps)  # TODO: defined for other types
-    return x1 + mod.sign(x2 - x1)*inc
+    inc = 10 ** (floor(log10(x1)) - mp.dps)  # TODO: defined for other types
+    return x1 + sign(x2 - x1)*inc
 
 
 def clip(x, /, min=None, max=None):

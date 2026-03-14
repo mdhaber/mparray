@@ -1,7 +1,7 @@
 import sys as sys
 import numpy as np
 from mpmath import mp
-from mparray import log, exp, real, asarray, _vectorize as vectorize
+from .._mparray import log, exp, real, asarray, _vectorize as vectorize
 from scipy import special
 
 # add imported names to `_imports` to avoid altering their documentation and exposing

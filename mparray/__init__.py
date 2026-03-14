@@ -186,11 +186,14 @@ binary_names = ['__add__', '__sub__', '__and__', '__eq__', '__ge__', '__gt__',
 rbinary_names = ['__radd__', '__rand__', '__rdivmod__', '__rfloordiv__',
                  '__rlshift__', '__rmod__', '__rmul__', '__ror__', '__rpow__',
                  '__rrshift__', '__rsub__', '__rtruediv__', '__rxor__']
+ensure_output_dtype = ['__and__', '__eq__', '__ge__', '__gt__', '__le__', '__lt__',
+                       '__ne__', '__or__', '__xor__', '__rand__', '__ror__', '__rxor__']
 for name in binary_names + rbinary_names:
     def fun(self, other, name=name):
         self, other = _promote(self, other)
+        dtype = None if name in ensure_output_dtype else self.dtype
         data = self._call_super_method(name, other)
-        return asarray(data, dtype=self.dtype)
+        return asarray(data, dtype=dtype)
     setattr(MPArray, name, fun)
 
 # In-place methods
@@ -286,25 +289,27 @@ mod.astype = astype
 
 ## Elementwise Functions ##
 # TODO: fix `logical_` functions for non-boolean dtype
-# TODO: fix `bitwise_` functions for inappropriate dtypes
-elementwise_numpy = ['abs', 'bitwise_and', 'bitwise_left_shift', 'bitwise_invert',
-                     'bitwise_or', 'bitwise_right_shift', 'bitwise_xor', 'equal',
-                     'greater', 'greater_equal', 'less', 'less_equal', 'logical_and',
-                     'logical_not', 'logical_or', 'logical_xor', 'negative',
-                     'not_equal', 'positive', 'square']
+elementwise_numpy = ['equal', 'greater', 'greater_equal', 'less', 'less_equal',
+                     'logical_and', 'logical_not', 'logical_or', 'logical_xor',
+                     'not_equal']
 for name in elementwise_numpy:
     def fun(*args, name=name, **kwargs):
         args = (_get_data(arg) for arg in args)
         return asarray(getattr(np, name)(*args, **kwargs))
     setattr(mod, name, fun)
 
+# TODO: fix `bitwise_` functions for inappropriate dtypes
+elementwise_no_dtype = ['abs', 'bitwise_and', 'bitwise_left_shift', 'bitwise_invert',
+                        'bitwise_or', 'bitwise_right_shift', 'bitwise_xor', 'negative',
+                        'positive', 'square']
 elementwise_promote_numpy = ['add', 'remainder', 'pow', 'multiply',
                              'maximum', 'minimum', 'subtract']
-for name in elementwise_promote_numpy:
+for name in elementwise_no_dtype + elementwise_promote_numpy:
     def fun(*args, name=name, **kwargs):
         args = _promote(*args)
+        dtype = args[0].dtype
         args = (_get_data(arg) for arg in args)
-        return asarray(getattr(np, name)(*args, **kwargs))
+        return asarray(getattr(np, name)(*args, **kwargs), dtype=dtype)
     setattr(mod, name, fun)
 
 mp.reciprocal = lambda x: 1 / x  # lazy!

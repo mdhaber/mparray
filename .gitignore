@@ -138,3 +138,7 @@ Thumbs.db
 doc/frontpage/build
 doc/source/reference/generated
 **/.ipynb_checkpoints
+
+.hypothesis/
+array-api-tests
+pixi.lock

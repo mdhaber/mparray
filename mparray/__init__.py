@@ -307,7 +307,7 @@ for name in elementwise_no_dtype + elementwise_promote_numpy:
         dtype = args[0].dtype
         args = (_get_data(arg) for arg in args)
         return asarray(getattr(np, name)(*args, **kwargs), dtype=dtype)
-    mod[name] = funf
+    mod[name] = fun
 
 mp.reciprocal = lambda x: 1 / x  # lazy!
 mp.logaddexp = lambda x, y: mp.log(mp.exp(x) + mp.exp(y))

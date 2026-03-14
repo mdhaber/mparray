@@ -10,7 +10,6 @@ import numpy.testing
 import mpmath
 from mpmath import mp
 import functools
-from . import special
 
 
 class MPArray:
@@ -207,22 +206,19 @@ for name in desired_names:
         return self
     setattr(MPArray, name, fun)
 
-mod_name = f'mparray'
-mod = types.ModuleType(mod_name)
-sys.modules[mod_name] = mod
-
-mod.MPArray = MPArray
+mod = sys.modules[__name__].__dict__
 
 ## Constants ##
 constant_names = ['e', 'inf', 'nan', 'pi']
 for name in constant_names:
-    setattr(mod, name, mp.mpf(getattr(mpmath, name)))
-setattr(mod, 'newaxis', np.newaxis)
+    mod[name] = mp.mpf(getattr(mpmath, name))
+newaxis = np.newaxis
+
 
 ## Creation Functions ##
 def asarray(obj, /, *, dtype=None, device=None, copy=None):
     return MPArray(obj, dtype=dtype, device=device, copy=copy)
-setattr(mod, 'asarray', asarray)
+
 
 creation_functions = ['arange', 'empty', 'eye', 'from_dlpack',
                       'linspace', 'ones', 'zeros']
@@ -233,7 +229,7 @@ for name in creation_functions:
     def fun(*args, name=name, **kwargs):
         data = getattr(np, name)(*args, **kwargs)
         return asarray(data)
-    setattr(mod, name, fun)
+    mod[name] = fun
 
 for name in creation_functions_like:
     def fun(x, /, name=name, **kwargs):
@@ -243,26 +239,27 @@ for name in creation_functions_like:
         shape = kwds.pop('shape')
         data = getattr(np, name)(shape, **kwds)
         return asarray(data)
-    setattr(mod, name, fun)
+    mod[name] = fun
+
 
 def full(shape, fill_value, *, dtype=None, device=None):
     dtype = result_type(fill_value) if dtype is None else dtype
     res = mod.ones(shape, dtype=dtype, device=device)
     res[...] = fill_value
     return res
-mod.full = full
+
 
 def full_like(x, /, fill_value, **kwargs):
     kwds = dict(shape=x.shape, dtype=x.dtype, device=x.device)
     kwds.update(kwargs)
     shape = kwds.pop('shape')
     return mod.full(shape, fill_value, **kwargs)
-mod.full_like = full_like
+
 
 ## Data Type Functions and Data Types ##
 def result_type(*args):
     return np.result_type(*(_get_dtype(arg) for arg in args if arg is not None))
-mod.result_type = result_type
+
 
 dtype_fun_names = ['can_cast', 'finfo', 'iinfo']
 for name in dtype_fun_names:
@@ -270,7 +267,7 @@ for name in dtype_fun_names:
     def fun(*args, name=name, **kwargs):
         args = [_get_dtype(arg) for arg in args]
         return getattr(np, name)(*args, **kwargs)
-    setattr(mod, name, fun)
+    mod[name] = fun
 
 dtype_names = ['bool', 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16',
                'uint32', 'uint64', 'float32', 'float64', 'complex64', 'complex128',
@@ -278,14 +275,14 @@ dtype_names = ['bool', 'int8', 'int16', 'int32', 'int64', 'uint8', 'uint16',
 inspection_fun_names = ['__array_namespace_info__']
 version_attribute_names = ['__array_api_version__']
 for name in (dtype_names + inspection_fun_names + version_attribute_names):
-    setattr(mod, name, getattr(np, name))
+    mod[name] = getattr(np, name)
 
 def astype(x, dtype, /, *, copy=True, device=None):
     if device is None and not copy and dtype == x.dtype:
         return x
     # TODO: take care of copy=False error if impossible to satisfy
     return asarray(x, dtype=dtype, device=device, copy=copy)
-mod.astype = astype
+
 
 ## Elementwise Functions ##
 # TODO: fix `logical_` functions for non-boolean dtype
@@ -296,7 +293,7 @@ for name in elementwise_numpy:
     def fun(*args, name=name, **kwargs):
         args = (_get_data(arg) for arg in args)
         return asarray(getattr(np, name)(*args, **kwargs))
-    setattr(mod, name, fun)
+    mod[name] = fun
 
 # TODO: fix `bitwise_` functions for inappropriate dtypes
 elementwise_no_dtype = ['abs', 'bitwise_and', 'bitwise_left_shift', 'bitwise_invert',
@@ -310,7 +307,7 @@ for name in elementwise_no_dtype + elementwise_promote_numpy:
         dtype = args[0].dtype
         args = (_get_data(arg) for arg in args)
         return asarray(getattr(np, name)(*args, **kwargs), dtype=dtype)
-    setattr(mod, name, fun)
+    mod[name] = funf
 
 mp.reciprocal = lambda x: 1 / x  # lazy!
 mp.logaddexp = lambda x, y: mp.log(mp.exp(x) + mp.exp(y))
@@ -335,7 +332,7 @@ for name in elementwise_mp + elementwise_mp_float:
         out = np.vectorize(getattr(mp, name))(*data, **kwargs)
         # TODO: preserve complex output dtype for funcs like acos
         return asarray(out, dtype=args[0].dtype)
-    setattr(mod, name, fun)
+    mod[name] = fun
 
 
 elementwise_is = ['isfinite', 'isinf', 'isnan']
@@ -347,13 +344,12 @@ for name in elementwise_is:
 
         out = np.vectorize(getattr(mp, name))(_get_data(arg), **kwargs)
         return asarray(out, dtype=np.bool)
-    setattr(mod, name, fun)
+    mod[name] = fun
 
 
 def floor_divide(x1, x2, /):
     x1, x2 = _promote(x1, x2)
     return asarray(mod.floor(x1 / x2), dtype=x1.dtype)
-mod.floor_divide = floor_divide
 
 
 def sign(x, /):
@@ -361,24 +357,20 @@ def sign(x, /):
     if mod.isdtype(x.dtype, ('bool', 'integral')):
         return asarray(np.sign(x._data), dtype=x.dtype)
     return asarray(_vectorize(mp.sign)(x), dtype=x.dtype)
-mod.sign = sign
 
 
 def signbit(x, /):
     return x < 0  # Python int/mp.mpf don't have -0 or signed NaNs
-mod.signbit = signbit
 
 
 def copysign(x1, x2, /):
     return abs(x1) * sign(x2)
-mod.copysign = copysign
 
 
 def nextafter(x1, x2, /):
     x1, x2 = asarray(x1), asarray(x2)
     inc = 10 ** (mod.floor(mod.log10(x1)) - mp.dps)  # TODO: defined for other types
     return x1 + mod.sign(x2 - x1)*inc
-mod.nextafter = nextafter
 
 
 def clip(x, /, min=None, max=None):
@@ -387,7 +379,6 @@ def clip(x, /, min=None, max=None):
     x, min, max = _get_data(x, min, max)
     out = np.clip(x, min=min, max=max)
     return asarray(out, dtype=dtype)
-mod.clip = clip
 
 ## Indexing Functions
 take_like = ['take', 'take_along_axis']
@@ -398,7 +389,7 @@ for name in take_like:
         x, indices = _get_data(x, indices)
         indices = np.astype(indices, np.int64)
         return asarray(getattr(np, name)(x, indices, **kwargs), dtype=dtype)
-    setattr(mod, name, fun)
+    mod[name] = fun
 
 ## Inspection ##
 # Included with dtype functions above
@@ -412,9 +403,9 @@ for name in linalg_names:
         x1, x2 = _get_data(x1, x2)
         out = getattr(np, name)(x1, x2)
         return asarray(out, dtype=dtype)
-    setattr(mod, name, fun)
+    mod[name] = fun
 
-mod.matrix_transpose = lambda x: asarray(_get_data(x).mT, dtype=x.dtype)
+matrix_transpose = lambda x: asarray(_get_data(x).mT, dtype=x.dtype)
 
 ## Manipulation Functions ##
 output_arrays = {'broadcast_arrays', 'unstack', 'meshgrid'}
@@ -426,7 +417,7 @@ for name in manip_array_in_out:
         dtype = args[0].dtype
         res = getattr(np, name)(*_get_data(*args), **kwargs)
         return tuple(asarray(resi, dtype=dtype) for resi in res)
-    setattr(mod, name, fun)
+    mod[name] = fun
 
 manip_tuple_in = ['concat', 'stack']
 for name in manip_tuple_in:
@@ -435,7 +426,7 @@ for name in manip_tuple_in:
         dtype = args[0].dtype
         res = getattr(np, name)(tuple(_get_data(*args)), **kwargs)
         return asarray(res, dtype=dtype)
-    setattr(mod, name, fun)
+    mod[name] = fun
 
 manip_names = ['broadcast_to', 'expand_dims', 'flip', 'moveaxis', 'permute_dims',
                'reshape', 'roll', 'squeeze', 'tile', 'tril', 'triu']
@@ -444,7 +435,7 @@ for name in manip_names:
         x = asarray(x)
         res = getattr(np, name)(_get_data(x), *args, **kwargs)
         return asarray(res, dtype=x.dtype)
-    setattr(mod, name, fun)
+    mod[name] = fun
 
 
 def repeat(x, repeats, /, *, axis):
@@ -452,17 +443,15 @@ def repeat(x, repeats, /, *, axis):
     repeats = np.asarray(_get_data(repeats), dtype=np.int64)
     res = np.repeat(x._data, repeats, axis=axis)
     return asarray(res, dtype=x.dtype)
-mod.repeat = repeat
 
 
 def unstack(x, /, *, axis):
     x = asarray(x)
     res = np.unstack(x._data, axis=axis)
     return tuple(asarray(resi, dtype=x.dtype) for resi in res)
-mod.unstack = unstack
 
 
-mod.broadcast_shapes = np.broadcast_shapes
+broadcast_shapes = np.broadcast_shapes
 
 ## Searching Functions
 def searchsorted(x1, x2, /, *, side='left', sorter=None):
@@ -471,20 +460,18 @@ def searchsorted(x1, x2, /, *, side='left', sorter=None):
     j = np.searchsorted(x1, x2, side=side, sorter=sorter)
     return asarray(j)
 
+
 def nonzero(x, /):
     x = asarray(x)
     res = np.nonzero(x._data)
     return tuple(asarray(resi) for resi in res)
+
 
 def where(condition, x1, x2, /):
     condition = asarray(condition)
     x1, x2 = _promote(x1, x2)
     data = np.where(condition._data, x1._data, x2._data)
     return asarray(data, dtype=x1.dtype)
-
-mod.searchsorted = searchsorted
-mod.nonzero = nonzero
-mod.where = where
 
 # Defined below, in Statistical Functions
 # argmax
@@ -494,7 +481,7 @@ mod.where = where
 ## Set Functions ##
 unique_names = ['unique_values', 'unique_counts', 'unique_inverse', 'unique_all']
 for name in unique_names:
-    def set_fun(x, /, name=name):
+    def fun(x, /, name=name):
         x = asarray(x)
         res = getattr(np, name)(x._data)
         if name == 'unique_values':
@@ -509,16 +496,16 @@ for name in unique_names:
             dtype = x._dtype if field_i == 'values' else None
             result_list.append(asarray(res_i, dtype=dtype))
         return result_class(*result_list)
-    setattr(mod, name, set_fun)
+    mod[name] = fun
 
 ## Sorting Functions ##
 sort_names = ['sort', 'argsort']
 for name in sort_names:
-    def sort_fun(x, /, *, name=name, axis=-1, descending=False, stable=True):
+    def fun(x, /, *, name=name, axis=-1, descending=False, stable=True):
         x = asarray(x)
         res = getattr(np, name)(x._data)
         return asarray(res, dtype=x.dtype if name == 'sort' else None)
-    setattr(mod, name, sort_fun)
+    mod[name] = fun
 
 ## Statistical Functions and Utility Functions ##
 statistical_names_float = ['mean', 'var', 'std']
@@ -526,12 +513,12 @@ statistical_names_dtype = ['max', 'min', 'sum', 'prod',
                            'cumulative_sum', 'cumulative_prod', 'diff']
 statistical_names_none = ['argmax', 'argmin', 'count_nonzero', 'all', 'any']
 for name in statistical_names_float + statistical_names_dtype + statistical_names_none:
-    def statistical_fun(x, *args, name=name, **kwargs):
+    def fun(x, *args, name=name, **kwargs):
         dtype = kwargs.pop('dtype', float if name in statistical_names_float else bool)
         x, = _promote(x, atleast=dtype)  # TODO: follow standard precisely?
         res = getattr(np, name)(x._data, *args, **kwargs)
         return asarray(res, dtype=None if name in statistical_names_none else x.dtype)
-    setattr(mod, name, statistical_fun)
+    mod[name] = fun
 
 
 preface = ["The following is the documentation for the corresponding "
@@ -539,19 +526,20 @@ preface = ["The following is the documentation for the corresponding "
            "MPArray behavior is the same except that the calculation is "
            "carried out in the appropriate precision.\n\n"]
 preface = "\n".join(preface)
-for attribute in mod.__dict__.keys():
+mod_keys = list(mod.keys())
+for attribute in mod_keys:
     # Add documentation if it is not already present
-    if getattr(mod, attribute).__doc__:
+    if mod[attribute].__doc__:
         continue
 
     np_attr = getattr(np, attribute, None)
-    mod_attr = getattr(mod, attribute, None)
+    mod_attr = mod.get(attribute, None)
     if np_attr is not None and mod_attr is not None:
 
         if hasattr(np_attr, "__doc__"):
             try:
                 np_doc = getattr(np_attr, "__doc__")
-                getattr(mod, attribute).__doc__ = preface + np_doc
+                mod[attribute].__doc__ = preface + np_doc
             except (AttributeError, TypeError):
                 pass
 
@@ -602,15 +590,16 @@ def _get_dtype(x):
 def _promote(*args, atleast=bool):
     dtype = result_type(*args, atleast)
     return tuple((astype(arg, dtype) if arg is not None else arg) for arg in args)
-mod._promote = _promote
 
 
 def _vectorize(f):
+
+    @functools.wraps(f)
     def wrapped(*args, **kwargs):
-        # assumes all args are arrays and all kwargs are not
-        args = _promote(*args, atleast=float)
+        args = list(_promote(*args, atleast=float))
         data = (_get_data(arg) for arg in args)
         out = np.vectorize(f)(*data, **kwargs)
         # TODO: preserve complex output dtype for funcs like acos
         return asarray(out, dtype=args[0].dtype)
+
     return wrapped

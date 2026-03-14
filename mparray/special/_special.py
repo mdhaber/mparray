@@ -1,222 +1,220 @@
-# import sys as sys
-# import numpy as np
-# from mpmath import mp
-# # from mparray import log, exp, real, asarray
-# from scipy import special
-#
-# def vectorize(f):
-#     def wrapped(*args, **kwargs):
-#         args = list(_promote(*args, atleast=float))
-#         data = (_get_data(arg) for arg in args)
-#         out = np.vectorize(f)(*data, **kwargs)
-#         # TODO: preserve complex output dtype for funcs like acos
-#         return asarray(out, dtype=args[0].dtype)
-#
-# # add imported names to `imports` to avoid altering their documentation
-# imports = {'sys', 'np', 'mp', 'log', 'exp',
-#            'real', 'asarray', 'special', 'imports'}
-#
-# expm1 = vectorize(mp.expm1)
-# log1p = vectorize(mp.log1p)
-# factorial2 = vectorize(mp.fac2)
-# psi = vectorize(mp.digamma)
-# digamma = psi
-# ndtr = vectorize(mp.ncdf)
-# gamma = vectorize(mp.gamma)
-# gammaln = vectorize(mp.loggamma)
-# erf = vectorize(mp.erf)
-# erfc = vectorize(mp.erfc)
-# zeta = vectorize(mp.zeta)
-# poch = vectorize(mp.rf)
-# binom = vectorize(mp.binomial)
-# comb = binom
-# lambertw = vectorize(mp.lambertw)
-# powm1 = vectorize(mp.powm1)
-# hyp1f1 = vectorize(mp.hyp1f1)
-# hyp2f1 = vectorize(mp.hyp2f1)
-# iv = vectorize(mp.besseli)
-# kv = vectorize(mp.besselk)
-#
-#
-# @vectorize
-# def gammainc(a, x):
-#     return mp.gammainc(a, a=0, b=x, regularized=True)
-#
-#
-# @vectorize
-# def gammaincc(a, x):
-#     return mp.gammainc(a, a=x, b=mp.inf, regularized=True)
-#
-#
-# @vectorize
-# def ndtri(x):
-#     if x == 0:
-#         return -mp.inf
-#     if x == 1:
-#         return mp.inf
-#     if x < 0 or x > 1:
-#         return mp.nan
-#
-#     extra_dps = int(mp.ceil(-mp.log10(x)))
-#     with mp.workdps(mp.dps + extra_dps):
-#         return mp.sqrt(2) * mp.erfinv(2 * x - mp.one)
-#
-#
-# @vectorize
-# def log_ndtr(x):
-#     if x <= 0:
-#         return mp.log(mp.ncdf(x))
-#     else:
-#         complement = mp.ncdf(-x)
-#         return mp.log1p(-complement)
-#
-#
-# @vectorize
-# def betaln(x, y):
-#     return mp.log(mp.beta(x, y))
-#
-#
-# @vectorize
-# def betainc(a, b, x):
-#     return mp.betainc(a, b, 0, x, regularized=True)
-#
-#
-# @vectorize
-# def fdtr(dn, dd, x):
-#     return mp.betainc(dn/2, dd/2, 0, x*dn/(dd + x*dn), regularized=True)
-#
-#
-# @vectorize
-# def fdtrc(dn, dd, x):
-#     return mp.betainc(dn/2, dd/2, x*dn/(dd + x*dn), 1, regularized=True)
-#
-#
-# @vectorize
-# def xlogy(x, y):  # needs accuracy review
-#     return x*mp.log(y)
-#
-#
-# @vectorize
-# def xlog1py(x, y):  # needs accuracy review
-#     return x*mp.log1p(y)
-#
-#
-# @vectorize
-# def cosm1(x):
-#     if x == 0:
-#         # Handle this case separately to avoid blow up in extra_dps calculation.
-#         return mp.zero
-#     # second term in cosine series is x**2/2
-#     # catastrophic cancellation also occurs near nonzero multiples of 2*pi,
-#     # but doubling precision is enough here. We are being conservative by
-#     # always at least doubling the precision.
-#     extra_dps = max(mp.dps, 2*int(mp.ceil(-mp.log10(x))) + 1)
-#     with mp.workdps(mp.dps + extra_dps):
-#         return mp.cos(x) - mp.one
-#
-#
-# @vectorize
-# def logit(x):  # needs accuracy review
-#     res = mp.log(x) - mp.log1p(-x)
-#     return res
-#
-#
-# @vectorize
-# def expit(x):  # needs accuracy review
-#     return mp.exp(x - mp.log1p(mp.exp(x)))
-#
-#
-# def _boxcox_scalar(x, lmbda):
-#     """
-#     y = (x**lmbda - 1) / lmbda  if lmbda != 0
-#         log(x)                  if lmbda == 0
-#     """
-#     if x < 0:
-#         return mp.nan
-#     if lmbda != 0:
-#         return mp.powm1(x, lmbda) / lmbda
-#     else:
-#         return mp.log(x)
-#
-#
-# @vectorize
-# def boxcox(x, lmbda):
-#     return _boxcox_scalar(x, lmbda)
-#
-#
-# @vectorize
-# def boxcox1p(x, lmbda):
-#     if x == 0:
-#         # Handle x = 0 separately to avoid blow up in extra_dps calculation.
-#         return mp.zero
-#     extra_dps = max(0, int(mp.ceil(-mp.log10(abs(x)))))
-#     with mp.workdps(mp.dps + extra_dps):
-#         return _boxcox_scalar(mp.one + x, lmbda)
-#
-#
-# def logsumexp(a, axis=None, b=None):
-#     # As far as I know, logsumexp is to avoid overflow, not to improve precision.
-#     # mpmath doesn't overflow, so naive implementation should be OK.
-#     return log((b*exp(a)).sum(axis=axis))
-#
-#
-# def ive(v, z):
-#     return asarray(iv(v, z) * exp(-abs(real(z))))
-#
-#
-# def i0e(x):
-#     return asarray(ive(0, x))
-#
-#
-# def i1e(x):
-#     return asarray(ive(1, x))
-#
-#
-# def kve(v, z):
-#     return asarray(kv(v, z) * exp(z))
-#
-#
-# def k0e(x):
-#     return asarray(kve(0, x))
-#
-#
-# def k1e(x):
-#     return asarray(kve(1, x))
-#
-#
-# def chdtr(v, x):
-#     return asarray(gammainc(v / 2, x / 2))
-#
-#
-# def chdtrc(v, x):
-#     return asarray(gammaincc(v / 2, x / 2))
-#
-#
-# def stdtr(df, t):
-#     x = df / (t**2 + df)
-#     p = betainc(df/2, mp.one/2, x)/2
-#     return asarray(np.where(t < 0, p, mp.one - p))
-#
-#
-# # others to be added
-# # gammaincinv
-# # gammainccinv
-# # chdtri
-# # chndtr
-# # chndtrix
-# # stdtrit
-# # ndtri_exp
-# # tklmbda
-# # inv_boxcox
-# # inv_boxcox1p
-# # kolmogorov, smirnov
-# # erfcinv
-# # erfinv
-#
-#
-# # generate rough documentation
-# function_names = list(sys.modules[__name__].__dict__.keys())
-# for key in function_names:
-#     if key in imports or '_' in key:
-#         continue
-#     sys.modules[__name__].__dict__[key].__doc__ = getattr(special, key).__doc__
+import sys as sys
+import numpy as np
+from mpmath import mp
+from mparray import log, exp, real, asarray, _vectorize as vectorize
+from scipy import special
+
+# add imported names to `_imports` to avoid altering their documentation and exposing
+# as public members of `mparray.special`.
+_imports = {'sys', 'np', 'mp', 'log', 'exp', 'vectorize', 'real', 'asarray', 'special'}
+
+expm1 = vectorize(mp.expm1)
+log1p = vectorize(mp.log1p)
+factorial2 = vectorize(mp.fac2)
+psi = vectorize(mp.digamma)
+digamma = psi
+ndtr = vectorize(mp.ncdf)
+gamma = vectorize(mp.gamma)
+gammaln = vectorize(mp.loggamma)
+erf = vectorize(mp.erf)
+erfc = vectorize(mp.erfc)
+zeta = vectorize(mp.zeta)
+poch = vectorize(mp.rf)
+binom = vectorize(mp.binomial)
+comb = binom
+lambertw = vectorize(mp.lambertw)
+powm1 = vectorize(mp.powm1)
+hyp1f1 = vectorize(mp.hyp1f1)
+hyp2f1 = vectorize(mp.hyp2f1)
+iv = vectorize(mp.besseli)
+kv = vectorize(mp.besselk)
+
+
+@vectorize
+def gammainc(a, x):
+    return mp.gammainc(a, a=0, b=x, regularized=True)
+
+
+@vectorize
+def gammaincc(a, x):
+    return mp.gammainc(a, a=x, b=mp.inf, regularized=True)
+
+
+@vectorize
+def ndtri(x):
+    if x == 0:
+        return -mp.inf
+    if x == 1:
+        return mp.inf
+    if x < 0 or x > 1:
+        return mp.nan
+
+    extra_dps = int(mp.ceil(-mp.log10(x)))
+    with mp.workdps(mp.dps + extra_dps):
+        return mp.sqrt(2) * mp.erfinv(2 * x - mp.one)
+
+
+@vectorize
+def log_ndtr(x):
+    if x <= 0:
+        return mp.log(mp.ncdf(x))
+    else:
+        complement = mp.ncdf(-x)
+        return mp.log1p(-complement)
+
+
+@vectorize
+def betaln(x, y):
+    return mp.log(mp.beta(x, y))
+
+
+@vectorize
+def betainc(a, b, x):
+    return mp.betainc(a, b, 0, x, regularized=True)
+
+
+@vectorize
+def fdtr(dn, dd, x):
+    return mp.betainc(dn/2, dd/2, 0, x*dn/(dd + x*dn), regularized=True)
+
+
+@vectorize
+def fdtrc(dn, dd, x):
+    return mp.betainc(dn/2, dd/2, x*dn/(dd + x*dn), 1, regularized=True)
+
+
+@vectorize
+def xlogy(x, y):  # needs accuracy review
+    return x*mp.log(y)
+
+
+@vectorize
+def xlog1py(x, y):  # needs accuracy review
+    return x*mp.log1p(y)
+
+
+@vectorize
+def cosm1(x):
+    if x == 0:
+        # Handle this case separately to avoid blow up in extra_dps calculation.
+        return mp.zero
+    # second term in cosine series is x**2/2
+    # catastrophic cancellation also occurs near nonzero multiples of 2*pi,
+    # but doubling precision is enough here. We are being conservative by
+    # always at least doubling the precision.
+    extra_dps = max(mp.dps, 2*int(mp.ceil(-mp.log10(x))) + 1)
+    with mp.workdps(mp.dps + extra_dps):
+        return mp.cos(x) - mp.one
+
+
+@vectorize
+def logit(x):  # needs accuracy review
+    res = mp.log(x) - mp.log1p(-x)
+    return res
+
+
+@vectorize
+def expit(x):  # needs accuracy review
+    return mp.exp(x - mp.log1p(mp.exp(x)))
+
+
+def _boxcox_scalar(x, lmbda):
+    """
+    y = (x**lmbda - 1) / lmbda  if lmbda != 0
+        log(x)                  if lmbda == 0
+    """
+    if x < 0:
+        return mp.nan
+    if lmbda != 0:
+        return mp.powm1(x, lmbda) / lmbda
+    else:
+        return mp.log(x)
+
+
+@vectorize
+def boxcox(x, lmbda):
+    return _boxcox_scalar(x, lmbda)
+
+
+@vectorize
+def boxcox1p(x, lmbda):
+    if x == 0:
+        # Handle x = 0 separately to avoid blow up in extra_dps calculation.
+        return mp.zero
+    extra_dps = max(0, int(mp.ceil(-mp.log10(abs(x)))))
+    with mp.workdps(mp.dps + extra_dps):
+        return _boxcox_scalar(mp.one + x, lmbda)
+
+
+def logsumexp(a, axis=None, b=None):
+    # As far as I know, logsumexp is to avoid overflow, not to improve precision.
+    # mpmath doesn't overflow, so naive implementation should be OK.
+    return log((b*exp(a)).sum(axis=axis))
+
+
+def ive(v, z):
+    return asarray(iv(v, z) * exp(-abs(real(z))))
+
+
+def i0e(x):
+    return asarray(ive(0, x))
+
+
+def i1e(x):
+    return asarray(ive(1, x))
+
+
+def kve(v, z):
+    return asarray(kv(v, z) * exp(z))
+
+
+def k0e(x):
+    return asarray(kve(0, x))
+
+
+def k1e(x):
+    return asarray(kve(1, x))
+
+
+def chdtr(v, x):
+    return asarray(gammainc(v / 2, x / 2))
+
+
+def chdtrc(v, x):
+    return asarray(gammaincc(v / 2, x / 2))
+
+
+def stdtr(df, t):
+    x = df / (t**2 + df)
+    p = betainc(df/2, mp.one/2, x)/2
+    return asarray(np.where(t < 0, p, mp.one - p))
+
+
+# others to be added
+# gammaincinv
+# gammainccinv
+# chdtri
+# chndtr
+# chndtrix
+# stdtrit
+# ndtri_exp
+# tklmbda
+# inv_boxcox
+# inv_boxcox1p
+# kolmogorov, smirnov
+# erfcinv
+# erfinv
+
+
+# generate rough documentation
+_preface = ["The following is the documentation for the corresponding "
+            f"attribute of `scipy.special`.",
+            "MPArray behavior is the same except that the calculation is "
+            "carried out in the appropriate precision.\n\n"]
+_preface = "\n".join(_preface)
+function_names = list(sys.modules[__name__].__dict__.keys())
+for key in function_names:
+    if key in _imports or '_' in key:
+        continue
+    special_doc = getattr(special, key).__doc__
+    sys.modules[__name__].__dict__[key].__doc__ = _preface + special_doc

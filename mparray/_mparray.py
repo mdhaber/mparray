@@ -7,6 +7,7 @@ import numpy.testing
 import mpmath
 from mpmath import mp
 import functools
+import warnings
 
 
 class MPArray:
@@ -153,9 +154,10 @@ class MPArray:
     def __dlpack_device__(self):
         return self._data.__dlpack_device__()
 
-    def __dlpack__(self):
+    def __dlpack__(self, *, stream, max_version, dl_device, copy):
         # really not sure how to define this
-        return self._data.__dlpack__()
+        return self._data.__dlpack__(stream=stream, max_version=max_version,
+                                     dl_device=dl_device, copy=copy)
 
     def to_device(self, device, /, *, stream=None):
         self._data = self._data.to_device(device, stream=stream)
@@ -175,7 +177,11 @@ unary_names = (['__abs__', '__invert__', '__neg__', '__pos__'])
 for name in unary_names:
     def fun(self, name=name):
         data = self._call_super_method(name)
-        return asarray(data, dtype=self.dtype)
+        dtype = self.dtype
+        dtype = ((np.float64 if "128" in str(dtype) else np.float32)
+                 if ((name == '__abs__') and (dtype in [np.complex64, np.complex128]))
+                 else dtype)
+        return asarray(data, dtype=dtype)
     setattr(MPArray, name, fun)
 
 # Methods that return the result of a unary operation as a Python scalar
@@ -194,8 +200,8 @@ binary_names = ['__add__', '__sub__', '__and__', '__eq__', '__ge__', '__gt__',
 rbinary_names = ['__radd__', '__rand__', '__rdivmod__', '__rfloordiv__',
                  '__rlshift__', '__rmod__', '__rmul__', '__ror__', '__rpow__',
                  '__rrshift__', '__rsub__', '__rtruediv__', '__rxor__']
-ensure_output_dtype = ['__and__', '__eq__', '__ge__', '__gt__', '__le__', '__lt__',
-                       '__ne__', '__or__', '__xor__', '__rand__', '__ror__', '__rxor__']
+ensure_output_dtype = ['__eq__', '__ge__', '__gt__', '__le__', '__lt__',
+                       '__ne__', '__rand__', '__ror__', '__rxor__']
 for name in binary_names + rbinary_names:
     def fun(self, other, name=name):
         self, other = _promote(self, other)
@@ -324,6 +330,7 @@ for name in elementwise_no_dtype + elementwise_promote_numpy:
         return asarray(getattr(np, name)(*args, **kwargs), dtype=dtype)
     mod[name] = fun
 
+mp.divide = lambda x, y: x / y
 mp.reciprocal = lambda x: 1 / x
 mp.logaddexp = lambda x, y: mp.log(mp.exp(x) + mp.exp(y))
 mp.imag = lambda x: x.imag
@@ -366,14 +373,14 @@ for name in elementwise_is:
 
 def floor_divide(x1, x2, /):
     x1, x2 = _promote(x1, x2)
-    return asarray(floor(x1 / x2), dtype=x1.dtype)
+    return asarray(x1 // x2, dtype=x1.dtype)
 
 
 def sign(x, /):
     x = asarray(x)
     if isdtype(x.dtype, ('bool', 'integral')):
         return asarray(np.sign(x._data), dtype=x.dtype)
-    return asarray(_vectorize(mp.sign, otypes=[object])(x), dtype=x.dtype)
+    return asarray(_vectorize(mp.sign)(x), dtype=x.dtype)
 
 
 def signbit(x, /):
@@ -381,7 +388,8 @@ def signbit(x, /):
 
 
 def copysign(x1, x2, /):
-    return abs(x1) * sign(x2)
+    dtype = result_type(x1, x2)
+    return asarray(abs(x1) * sign(x2), dtype=dtype)
 
 
 def nextafter(x1, x2, /):
@@ -475,7 +483,9 @@ broadcast_shapes = np.broadcast_shapes
 def searchsorted(x1, x2, /, *, side='left', sorter=None):
     x1, x2 = _promote(x1, x2)
     x1, x2 = _get_data(x1, x2)
-    j = np.searchsorted(x1, x2, side=side, sorter=sorter)
+    j = np.searchsorted(x1, x2, side=side,
+                        sorter=_get_data(sorter).astype(int)
+                        if sorter is not None else sorter)
     return asarray(j)
 
 
@@ -521,7 +531,9 @@ sort_names = ['sort', 'argsort']
 for name in sort_names:
     def fun(x, /, *, name=name, axis=-1, descending=False, stable=True):
         x = asarray(x)
-        res = getattr(np, name)(x._data)
+        x = -x if descending else x
+        res = getattr(np, name)(x._data, axis=axis, stable=stable)
+        res = -res if (descending and name == 'sort') else res
         return asarray(res, dtype=x.dtype if name == 'sort' else None)
     mod[name] = fun
 
@@ -534,11 +546,14 @@ for name in statistical_names_float + statistical_names_dtype + statistical_name
     def fun(x, *args, name=name, **kwargs):
         dtype = kwargs.pop('dtype', float if name in statistical_names_float else bool)
         x, = _promote(x, atleast=dtype)  # TODO: follow standard precisely?
-        res = getattr(np, name)(x._data, *args, **kwargs)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            res = getattr(np, name)(x._data, *args, **kwargs)
         return asarray(res, dtype=None if name in statistical_names_none else x.dtype)
     mod[name] = fun
 
 
+_dont_mod_signature = {'clip', 'sort', 'argsort'}
 preface = ["The following is the documentation for the corresponding "
            f"attribute of NumPy.",
            "MPArray behavior is the same except that the calculation is "
@@ -561,10 +576,11 @@ for attribute in mod_keys:
             except (AttributeError, TypeError):
                 pass
 
-        try:
-            mod_attr.__signature__ = inspect.signature(np_attr)
-        except (ValueError, TypeError):
-            pass
+        if attribute not in _dont_mod_signature:
+            try:
+                mod_attr.__signature__ = inspect.signature(np_attr)
+            except (ValueError, TypeError):
+                pass
 
         try:
             mod_attr.__name__ = np_attr.__name__
@@ -599,6 +615,8 @@ def _get_dtype(x):
         return np.complex128
     elif isinstance(x, type) and x not in {bool, int, float, complex}:
         return x(0).dtype
+    elif x in {int, float, complex}:
+        return x(1)
 
     return getattr(x, "dtype", x)
 

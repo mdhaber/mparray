@@ -144,6 +144,8 @@ xp-tests.cmd = [
   "linalg",
   "--xfails-file",
   "../tools/xp-tests-xfails.txt",
+  "--skips-file",
+  "../tools/xp-tests-skips.txt",
   "--max-examples=100",
   "--derandomize",
   "--disable-deadline",

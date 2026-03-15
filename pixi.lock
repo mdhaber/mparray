@@ -3907,7 +3907,7 @@ packages:
 - pypi: ./
   name: mparray
   version: 0.0.0
-  sha256: ce3f74a5cde9c9cccdf1037d93a079c2e609ff2f4b478822e702df6e52fe0f5c
+  sha256: 08e75694336754904912109918af5e05d87edf4cdfb068b095e99605df592cba
   requires_dist:
   - numpy
   - mpmath

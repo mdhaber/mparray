@@ -36,24 +36,25 @@ array_api_tests/test_has_names.py::test_has_names[linalg-tensordot]
 array_api_tests/test_has_names.py::test_has_names[linalg-trace]
 array_api_tests/test_has_names.py::test_has_names[linalg-vecdot]
 array_api_tests/test_has_names.py::test_has_names[linalg-vector_norm]
-# due to NumPy behavior
+# due to NumPy behavior - see #7
 array_api_tests/test_data_type_functions.py::test_finfo[float32]
-# because we are not subject to the usual precision limitations
+# because we are not subject to the usual precision limitations - see #9
 array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_left_shift
 array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift
 array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_invert
+# Funny promotion rules - see #8
 array_api_tests/test_statistical_functions.py::test_cumulative_sum
 array_api_tests/test_statistical_functions.py::test_cumulative_prod
 array_api_tests/test_statistical_functions.py::test_sum
 array_api_tests/test_statistical_functions.py::test_prod
-# because we're using an outdated version of the test suite
+# because we're using an outdated version of the test suite - see #10
 array_api_tests/test_operators_and_elementwise_functions.py::test_clip
-# ZeroDivisionError - come back and fix this
+# ZeroDivisionError - come back and fix this - see #11
 array_api_tests/test_operators_and_elementwise_functions.py::test_divide
 array_api_tests/test_operators_and_elementwise_functions.py::test_reciprocal
 array_api_tests/test_special_cases.py::test_empty_arrays[std]
 array_api_tests/test_special_cases.py::test_empty_arrays[var]
-# Generic implementation uses <, which doesn't work with complex dtypes
+# Generic implementation uses <, which doesn't work with complex dtypes - see #12
 array_api_tests/test_set_functions.py::test_unique_all
 array_api_tests/test_set_functions.py::test_unique_counts
 array_api_tests/test_set_functions.py::test_unique_inverse
@@ -147,7 +148,7 @@ array_api_tests/test_special_cases.py::test_iop[__ifloordiv__(x1_i > 0 and x2_i 
 array_api_tests/test_special_cases.py::test_iop[__ifloordiv__(x1_i < 0 and x2_i is -0) -> +infinity]
 array_api_tests/test_special_cases.py::test_iop[__ipow__(x1_i is -0 and x2_i < 0 and x2_i.is_integer() and x2_i % 2 == 1) -> -infinity]
 array_api_tests/test_special_cases.py::test_iop[__ipow__(x1_i is -0 and x2_i < 0 and not (x2_i.is_integer() and x2_i % 2 == 1)) -> +infinity]
-# other mpmath special case failures
+# other mpmath special case failures - see #11
 array_api_tests/test_special_cases.py::test_binary[copysign(x1_i is NaN and x2_i < 0) -> NaN]
 array_api_tests/test_special_cases.py::test_binary[copysign(x1_i is NaN and x2_i is -0) -> NaN]
 array_api_tests/test_special_cases.py::test_binary[copysign(x1_i is NaN and x2_i is +0) -> NaN]
@@ -228,6 +229,6 @@ array_api_tests/test_special_cases.py::test_iop[__imod__(x1_i < 0 and x2_i is +0
 array_api_tests/test_special_cases.py::test_iop[__imod__(x1_i < 0 and x2_i is -0) -> NaN]
 array_api_tests/test_special_cases.py::test_iop[__imod__(isfinite(x1_i) and x1_i > 0 and x2_i is -infinity) -> x2_i]
 array_api_tests/test_special_cases.py::test_iop[__imod__(isfinite(x1_i) and x1_i < 0 and x2_i is +infinity) -> x2_i]
-# Generic implementation doesn't propagate NaNs correctly
+# Generic implementation doesn't propagate NaNs correctly - see #13
 array_api_tests/test_special_cases.py::test_nan_propagation[max]
 array_api_tests/test_special_cases.py::test_nan_propagation[min]

@@ -78,7 +78,8 @@ class MPArray:
 
     def __array_namespace__(self, api_version=None):
         if api_version is None or api_version == '2024.12':
-            return mod
+            import mparray as xp
+            return xp
         else:
             message = (f"MPArray interface for Array API version '{api_version}' "
                        "is not implemented.")
@@ -613,9 +614,10 @@ def _get_dtype(x):
         return np.float64
     elif isinstance(x, mp.mpc):
         return np.complex128
-    elif isinstance(x, type) and x not in {bool, int, float, complex}:
+    elif isinstance(x, type) and not ((x is bool) or (x is int)
+                                      or (x is float) or (x is complex)):
         return x(0).dtype
-    elif x in {int, float, complex}:
+    elif (x is int) or (x is float) or (x is complex):
         return x(1)
 
     return getattr(x, "dtype", x)

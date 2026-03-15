@@ -152,42 +152,51 @@ def logsumexp(a, axis=None, b=None):
     return log((b*exp(a)).sum(axis=axis))
 
 
+@vectorize
 def ive(v, z):
-    return asarray(iv(v, z) * exp(-abs(real(z))))
+    return iv(v, z) * exp(-abs(real(z)))
 
 
+@vectorize
 def i0e(x):
-    return asarray(ive(0, x))
+    return ive(0, x)
 
 
+@vectorize
 def i1e(x):
-    return asarray(ive(1, x))
+    return ive(1, x)
 
 
+@vectorize
 def kve(v, z):
-    return asarray(kv(v, z) * exp(z))
+    return kv(v, z) * exp(z)
 
 
+@vectorize
 def k0e(x):
-    return asarray(kve(0, x))
+    return kve(0, x)
 
 
+@vectorize
 def k1e(x):
-    return asarray(kve(1, x))
+    return kve(1, x)
 
 
+@vectorize
 def chdtr(v, x):
-    return asarray(gammainc(v / 2, x / 2))
+    return gammainc(v / 2, x / 2)
 
 
+@vectorize
 def chdtrc(v, x):
-    return asarray(gammaincc(v / 2, x / 2))
+    return gammaincc(v / 2, x / 2)
 
 
+@vectorize
 def stdtr(df, t):
     x = df / (t**2 + df)
     p = betainc(df/2, mp.one/2, x)/2
-    return asarray(np.where(t < 0, p, mp.one - p))
+    return np.where(t < 0, p, mp.one - p)
 
 
 # others to be added

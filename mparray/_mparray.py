@@ -103,7 +103,7 @@ class MPArray:
     def __setitem__(self, key, other):
         key = self._validate_key(key)
         other = asarray(other, dtype=self.dtype, device=self.device)
-        self._data.__setitem__(key, other._data)
+        self._data.__setitem__(key, other._data[()])
 
     def __iter__(self):
         return iter(self._data)
@@ -221,6 +221,10 @@ newaxis = np.newaxis
 
 ## Creation Functions ##
 def asarray(obj, /, *, dtype=None, device=None, copy=None):
+    if (isinstance(obj, MPArray) and not copy
+            and ((device is None) or (obj.device == device))
+            and ((dtype is None) or (obj.dtype == dtype))):
+        return obj
     return MPArray(obj, dtype=dtype, device=device, copy=copy)
 
 
@@ -238,10 +242,10 @@ for name in creation_functions:
 for name in creation_functions_like:
     def fun(x, /, name=name, **kwargs):
         name = name.split("_")[0]
-        kwds = dict(shape=x.shape, dtype=x.dtype, device=x.device)
-        kwds.update(kwargs)
-        shape = kwds.pop('shape')
-        data = getattr(np, name)(shape, **kwds)
+        kwds = dict(shape=x.shape,
+                    dtype=kwargs.get('dtype', None) or x.dtype,
+                    device=kwargs.get('device', None) or x.device)
+        data = getattr(np, name)(**kwds)
         return asarray(data)
     mod[name] = fun
 

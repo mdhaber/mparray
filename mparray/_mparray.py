@@ -25,6 +25,7 @@ class MPArray:
             dtype = data.dtype if dtype is None else dtype
 
         dtype = _get_dtype(obj) if dtype is None else _get_dtype(dtype)
+        dtype = result_type(dtype)
         shape = data.shape
 
         dtype_ = object
@@ -33,10 +34,14 @@ class MPArray:
             dtype_ = np.bool
         if np.isdtype(dtype, 'integral'):
             type_ = int
-        elif np.isdtype(dtype, 'real floating'):  # TODO: fix for bool input
-            type_ = lambda x: mp.mpf(x) if isinstance(x, (mp.mpf, mp.mpc)) else mp.mpf(str(x))
-        elif np.isdtype(dtype, 'complex floating'):  # TODO: fix for complex inf/nan
-            type_ = lambda x: mp.mpc(x) if isinstance(x, (mp.mpf, mp.mpc)) else mp.mpc(str(x))
+        elif np.isdtype(dtype, 'real floating'):
+            def type_(x):
+                try:
+                    return mp.mpf(x) if isinstance(x, (mp.mpf, mp.mpc)) else mp.mpf(float(x))
+                except TypeError:
+                    return mp.mpf(np.nan)
+        elif np.isdtype(dtype, 'complex floating'):
+            type_ = lambda x: mp.mpc(x) if isinstance(x, (mp.mpf, mp.mpc)) else mp.mpc(complex(x))
 
         data = np.asarray([type_(el) for el in data.ravel()], dtype=dtype_)
         data = np.reshape(data, shape)
@@ -258,10 +263,9 @@ def full(shape, fill_value, *, dtype=None, device=None):
 
 
 def full_like(x, /, fill_value, **kwargs):
-    kwds = dict(shape=x.shape, dtype=x.dtype, device=x.device)
-    kwds.update(kwargs)
-    shape = kwds.pop('shape')
-    return full(shape, fill_value, **kwds)
+    dtype=kwargs.get('dtype', None) or x.dtype
+    device=kwargs.get('device', None) or x.device
+    return full(x.shape, fill_value, dtype=dtype, device=device)
 
 
 ## Data Type Functions and Data Types ##
@@ -280,7 +284,7 @@ for name in dtype_fun_names:
 dtype_names = ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16',
                'uint32', 'uint64', 'float32', 'float64', 'complex64', 'complex128',
                'isdtype']  # not really a dtype, but OK to treat it like one here
-inspection_fun_names = ['__array_namespace_info__']
+inspection_fun_names = ['__array_namespace_info__']  # TODO: replace this?
 version_attribute_names = ['__array_api_version__']
 for name in (dtype_names + inspection_fun_names + version_attribute_names):
     mod[name] = getattr(np, name)
@@ -313,11 +317,14 @@ for name in elementwise_no_dtype + elementwise_promote_numpy:
     def fun(*args, name=name, **kwargs):
         args = _promote(*args)
         dtype = args[0].dtype
-        args = (_get_data(arg) for arg in args)
+        args = tuple(_get_data(arg) for arg in args)
+        dtype = ((np.float64 if "128" in str(dtype) else np.float32)
+                 if ((name == 'abs') and (dtype in [np.complex64, np.complex128]))
+                 else dtype)
         return asarray(getattr(np, name)(*args, **kwargs), dtype=dtype)
     mod[name] = fun
 
-mp.reciprocal = lambda x: 1 / x  # lazy!
+mp.reciprocal = lambda x: 1 / x
 mp.logaddexp = lambda x, y: mp.log(mp.exp(x) + mp.exp(y))
 mp.imag = lambda x: x.imag
 mp.real = lambda x: x.real
@@ -330,7 +337,7 @@ elementwise_mp = ['acos', 'acosh', 'asin', 'asinh', 'atan', 'atan2', 'atanh', 'c
 elementwise_mp_float = ['ceil', 'conj', 'floor', 'imag', 'real', 'round', 'trunc']
 for name in elementwise_mp + elementwise_mp_float:
     def fun(*args, name=name, **kwargs):
-        atleast = bool if name in elementwise_mp_float else float
+        atleast = bool if name in elementwise_mp_float else 1.0
         args = _promote(*args, atleast=atleast)
 
         if name in elementwise_mp_float and np.isdtype(args[0].dtype, ('bool', 'integral')):
@@ -411,7 +418,9 @@ for name in linalg_names:
         x1, x2 = _promote(x1, x2)
         dtype = x1.dtype
         x1, x2 = _get_data(x1, x2)
-        out = getattr(np, name)(x1, x2)
+        out = getattr(np, name)(x1, x2, **kwargs)
+        out = (getattr(np, name)(x1.astype(int), x2.astype(int), **kwargs)
+               if np.any(out == None) else out)  # see gh-31019
         return asarray(out, dtype=dtype)
     mod[name] = fun
 
@@ -423,10 +432,9 @@ output_arrays = {'broadcast_arrays', 'unstack', 'meshgrid'}
 manip_array_in_out = ['broadcast_arrays', 'meshgrid']
 for name in manip_array_in_out:
     def fun(*args, name=name, **kwargs):
-        args = tuple(_promote(*args))
-        dtype = args[0].dtype
-        res = getattr(np, name)(*_get_data(*args), **kwargs)
-        return tuple(asarray(resi, dtype=dtype) for resi in res)
+        res = getattr(np, name)(*(_get_data(arg) for arg in args), **kwargs)
+        return tuple(asarray(resi, dtype=_get_dtype(arg))
+                     for resi, arg in zip(res, args))
     mod[name] = fun
 
 manip_tuple_in = ['concat', 'stack']
@@ -434,7 +442,7 @@ for name in manip_tuple_in:
     def fun(args, name=name, **kwargs):
         args = tuple(_promote(*args))
         dtype = args[0].dtype
-        res = getattr(np, name)(tuple(_get_data(*args)), **kwargs)
+        res = getattr(np, name)(tuple(_get_data(arg) for arg in args), **kwargs)
         return asarray(res, dtype=dtype)
     mod[name] = fun
 
@@ -448,14 +456,14 @@ for name in manip_names:
     mod[name] = fun
 
 
-def repeat(x, repeats, /, *, axis):
+def repeat(x, repeats, /, *, axis=None):
     x = asarray(x)
     repeats = np.asarray(_get_data(repeats), dtype=np.int64)
     res = np.repeat(x._data, repeats, axis=axis)
     return asarray(res, dtype=x.dtype)
 
 
-def unstack(x, /, *, axis):
+def unstack(x, /, *, axis=0):
     x = asarray(x)
     res = np.unstack(x._data, axis=axis)
     return tuple(asarray(resi, dtype=x.dtype) for resi in res)
@@ -583,16 +591,12 @@ def _get_data(*args):
 
 
 def _get_dtype(x):
-    if isinstance(x, bool):  # x in [True, False]:  # TODO: fix overriding built-in bool
+    if isinstance(x, bool) or x is np.bool:
         return np.bool
-    elif isinstance(x, int):
-        return np.int64
     elif isinstance(x, mp.mpf):
         return np.float64
     elif isinstance(x, mp.mpc):
         return np.complex128
-    elif x is np.bool:
-        return x
     elif isinstance(x, type) and x not in {bool, int, float, complex}:
         return x(0).dtype
 

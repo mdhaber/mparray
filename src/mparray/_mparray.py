@@ -1,9 +1,7 @@
 import collections
 import inspect
 import sys
-import types
 import numpy as np
-import numpy.testing
 import mpmath
 from mpmath import mp
 import functools

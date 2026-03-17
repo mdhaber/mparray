@@ -74,10 +74,10 @@ jobs:
         with:
           pixi-version: v0.65.0
           cache: true
-          environments: {{ matrix.environment }}
+          environments: ${{ matrix.environment }}
 
       - name: Test package
-        run: pixi run --environment={{ matrix.environment }} xp-tests
+        run: pixi run --environment=${{ matrix.environment }} xp-tests
 
 #  docs:
 #    name: Docs

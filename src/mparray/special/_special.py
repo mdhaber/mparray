@@ -1,12 +1,13 @@
 import sys as sys
 import numpy as np
 from mpmath import mp
-from .._mparray import log, exp, real, asarray, _vectorize as vectorize
+import mparray as xp
+from mparray._mparray import _vectorize as vectorize
 from scipy import special
 
 # add imported names to `_imports` to avoid altering their documentation and exposing
 # as public members of `mparray.special`.
-_imports = {'sys', 'np', 'mp', 'log', 'exp', 'vectorize', 'real', 'asarray', 'special'}
+_imports = {'sys', 'np', 'mp', 'xp', 'vectorize', 'special'}
 
 expm1 = vectorize(mp.expm1)
 log1p = vectorize(mp.log1p)
@@ -22,7 +23,6 @@ zeta = vectorize(mp.zeta)
 poch = vectorize(mp.rf)
 binom = vectorize(mp.binomial)
 comb = binom
-lambertw = vectorize(mp.lambertw)
 powm1 = vectorize(mp.powm1)
 hyp1f1 = vectorize(mp.hyp1f1)
 hyp2f1 = vectorize(mp.hyp2f1)
@@ -149,12 +149,12 @@ def boxcox1p(x, lmbda):
 def logsumexp(a, axis=None, b=None):
     # As far as I know, logsumexp is to avoid overflow, not to improve precision.
     # mpmath doesn't overflow, so naive implementation should be OK.
-    return log((b*exp(a)).sum(axis=axis))
+    return xp.log(xp.sum(b*xp.exp(a), axis=axis))
 
 
 @vectorize
 def ive(v, z):
-    return iv(v, z) * exp(-abs(real(z)))
+    return iv(v, z) * xp.exp(-xp.abs(xp.real(z)))
 
 
 @vectorize
@@ -169,7 +169,7 @@ def i1e(x):
 
 @vectorize
 def kve(v, z):
-    return kv(v, z) * exp(z)
+    return kv(v, z) * xp.exp(z)
 
 
 @vectorize
@@ -213,6 +213,7 @@ def stdtr(df, t):
 # kolmogorov, smirnov
 # erfcinv
 # erfinv
+# lambertw
 
 
 # generate rough documentation

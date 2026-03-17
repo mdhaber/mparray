@@ -1,0 +1,21 @@
+name: GitHub Actions Tests
+on: [push]
+jobs:
+  Tests:
+    name : Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Setup Conda
+        uses: conda-incubator/setup-miniconda@v3
+
+      - name: Create Conda Environment
+      - run: conda env create -f environment.yml
+
+      - name: Activate Conda Environment
+      - run: conda activate myenv
+
+      - name: Run tests
+      - run: pytest

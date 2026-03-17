@@ -1,0 +1,187 @@
+[workspace]
+authors = ["Matt Haberland <matt.haberland@gmail.com>"]
+channels = ["https://prefix.dev/conda-forge"]
+platforms = ["linux-64", "osx-arm64", "win-64"]
+preview = ["pixi-build"]
+
+# `mparray` package definition 
+
+[package.build.backend]
+name = "pixi-build-python"
+version = "*"
+
+[package.host-dependencies]
+uv = "*"
+
+[package.run-dependencies]
+numpy = "*"
+mpmath = "*"
+scipy = "*"
+
+# environment definitions
+
+[environments]
+default = { solve-group = "default" }
+tests = { features = ["tests"], solve-group = "default" }
+# lint = { features = ["lint"], solve-group = "default" }
+# docs = { features = ["docs"], solve-group = "default" }
+# dev = { features = ["tests", "xp-tests", "lint", "docs", "dev"], solve-group = "default" }
+dev = { features = ["tests", "xp-tests", "dev"], solve-group = "default" }
+ci-py310 = ["py310", "tests", "xp-tests"]
+ci-py313 = ["py313", "tests", "xp-tests"]
+ci-upstream-dev = ["test-upstream-dev", "tests"]
+
+# default feature definition
+
+[dev]
+# pulls in host and run dependencies
+mparray.path = "."
+
+[dependencies]
+mparray.path = "."
+
+# non-default feature definitions
+
+## tests
+
+[feature.tests.dependencies]
+pytest = "*"
+pytest-reportlog = "*"
+pytest-cov = "*"
+pytest-xdist = "*"
+
+[feature.tests.tasks.tests]
+cmd = "pytest tests/ -v"
+default-environment = "tests"
+
+[feature.tests.tasks.tests-cov]
+cmd = "pytest tests/ -v -ra --cov=mparray --cov-report=xml --cov-report=term --durations=20"
+default-environment = "tests"
+
+[feature.tests.tasks.coverage]
+cmd = "coverage html"
+depends-on = "tests-cov"
+default-environment = "tests"
+
+[feature.tests.tasks.open-coverage]
+cmd = "copen htmlcov/index.html"
+depends-on = "coverage"
+default-environment = "tests"
+
+[feature.tests.tasks.tests-log]
+cmd = "pytest tests/ --report-log output-log.jsonl"
+default-environment = "tests"
+
+## lint (not set up yet)
+
+# [feature.lint.dependencies]
+# pre-commit = "*"
+
+# [feature.lint.tasks.pre-commit-install]
+# cmd = "pre-commit install"
+# default-environment = "lint"
+
+# [feature.lint.tasks.lint]
+# cmd = "pre-commit run --all-files"
+# default-environment = "lint"
+
+## docs (not set up yet)
+
+# [feature.docs.dependencies]
+# jupyter-book = "*"
+# ghp-import = "*"
+# numpy = "*"
+
+# [feature.docs.tasks.docs]
+# cmd = "jupyter-book build mybook/"
+# default-environment = "docs"
+
+# [feature.docs.tasks.open-docs]
+# cmd = "open mybook/_build/html/index.html"
+# cwd = "."
+# depends-on = ["docs"]
+# default-environment = "docs"
+
+## dev
+
+[feature.dev.dependencies]
+pixi-pycharm = "*"
+ipython = "*"
+python-semantic-release = "*"
+
+## test-upstream-dev
+
+[feature.test-upstream-dev.pypi-dependencies]
+numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
+
+## xp-tests
+
+[feature.xp-tests.dependencies]
+pytest-json-report = "*"
+hypothesis = "*"
+ndindex = "*"
+array-api-compat = "*"
+
+[feature.xp-tests.tasks.clean-xp-tests]
+# clean array-api-tests dir
+cmd = "rm -rf array-api-tests"
+default-environment = "ci-py313"
+
+[feature.xp-tests.tasks.clone-xp-tests]
+# clone array-api-tests
+cmd = "git clone https://github.com/data-apis/array-api-tests.git"
+depends-on = ["clean-xp-tests"]
+default-environment = "ci-py313"
+
+[feature.xp-tests.tasks.checkout-xp-tests]
+# checkout array-api-tests commit
+cmd = [
+  "git",
+  "reset",
+  "--hard",
+  "6acde7564f8b144a83b0368cfd75187ae5717fc8",
+  "&&",
+  "git",
+  "submodule",
+  "update",
+  "--init",
+]
+cwd = "array-api-tests"
+depends-on = ["clone-xp-tests"]
+default-environment = "ci-py313"
+
+[feature.xp-tests.tasks.xp-tests]
+# run tests
+cmd = [
+  "pytest",
+  "-v",
+  "-rxXfE",
+  "-W",
+  # https://github.com/data-apis/array-api-tests/issues/284
+  "ignore::UserWarning",
+  # https://github.com/data-apis/array-api-tests/issues/329
+  "--disable-extension",
+  "fft",
+  "--disable-extension",
+  "linalg",
+  "--xfails-file",
+  "../tools/xp-tests-xfails.txt",
+  "--skips-file",
+  "../tools/xp-tests-skips.txt",
+  "--max-examples=100",
+  "--derandomize",
+  "--disable-deadline",
+  "array_api_tests/",
+]
+env.ARRAY_API_TESTS_MODULE = "mparray"
+cwd = "array-api-tests"
+depends-on = ["checkout-xp-tests"]
+default-environment = "ci-py313"
+
+## python versions
+
+[feature.py310.dependencies]
+python = "~=3.10.0"
+
+[feature.py313.dependencies]
+python = "~=3.13.0"

@@ -2,7 +2,8 @@ import pytest
 import numpy as np
 from mpmath import mp
 from scipy import special as sps
-from mparray import special as mps, assert_allclose, assert_nontrival
+# from mparray import assert_allclose
+from mparray import special as mps
 
 
 # these arguments happen to work for most functions

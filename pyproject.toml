@@ -1,6 +1,6 @@
 [build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["uv_build>=0.10.8,<0.11.0"]
+build-backend = "uv_build"
 
 [project]
 name = "mparray"
@@ -14,7 +14,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-dynamic = ["version", "description"]
+version = "0.0.0"
 requires-python = ">=3.10"
 dependencies = ["numpy", "mpmath", "scipy"]
 
@@ -75,128 +75,3 @@ filterwarnings = [
     "ignore:divide by zero encountered:RuntimeWarning",
     "ignore:overflow encountered:RuntimeWarning",
 ]
-
-[tool.pixi.workspace]
-channels = ["conda-forge"]
-platforms = ["linux-64", "osx-arm64", "win-64"]
-
-[tool.pixi.dependencies]
-python = ">=3.10.16,<3.14"
-pixi-pycharm = ">=0.0.10,<0.0.11"
-pytest-json-report = ">=1.5.0,<2"
-flit = ">=3.11.0,<4"
-
-[tool.pixi.pypi-dependencies]
-mparray = { path = ".", editable = true }
-
-[tool.pixi.feature.tests.dependencies]
-numpy = "*"
-pytest = "*"
-pytest-cov = "*"
-pytest-xdist = "*"
-array-api-compat = "*"
-
-[tool.pixi.feature.tests.tasks]
-tests = "pytest -v"
-tests-cov = "pytest -v -ra --cov=mparray --cov-report=xml --cov-report=term --durations=20"
-coverage = { cmd = "coverage html", depends-on = ["tests-cov"] }
-open-coverage = { cmd = "open htmlcov/index.html", depends-on = ["coverage"] }
-
-[tool.pixi.feature.xp-tests.dependencies]
-pytest = "*"
-pytest-json-report = "*"
-hypothesis = "*"
-ndindex = "*"
-array-api-compat = "*"
-
-[tool.pixi.feature.xp-tests.tasks]
-# clean array-api-tests dir
-clean-xp-tests = { cwd = ".", cmd = "rm -rf array-api-tests" }
-# clone array-api-tests
-clone-xp-tests.cmd = "git clone https://github.com/data-apis/array-api-tests.git"
-clone-xp-tests.cwd = "."
-clone-xp-tests.depends-on = ["clean-xp-tests"]
-# checkout array-api-tests commit
-checkout-xp-tests.cmd = [
-  "git",
-  "reset",
-  "--hard",
-  "6acde7564f8b144a83b0368cfd75187ae5717fc8",
-  "&&",
-  "git",
-  "submodule",
-  "update",
-  "--init",
-]
-checkout-xp-tests.cwd = "array-api-tests"
-checkout-xp-tests.depends-on = ["clone-xp-tests"]
-# run tests
-xp-tests.cmd = [
-  "pytest",
-  "-v",
-  "-rxXfE",
-  "-W",
-  # https://github.com/data-apis/array-api-tests/issues/284
-  "ignore::UserWarning",
-  # https://github.com/data-apis/array-api-tests/issues/329
-  "--disable-extension",
-  "fft",
-  "--disable-extension",
-  "linalg",
-  "--xfails-file",
-  "../tools/xp-tests-xfails.txt",
-  "--skips-file",
-  "../tools/xp-tests-skips.txt",
-  "--max-examples=100",
-  "--derandomize",
-  "--disable-deadline",
-  "array_api_tests/",
-]
-xp-tests.env.ARRAY_API_TESTS_MODULE = "mparray"
-xp-tests.cwd = "array-api-tests"
-xp-tests.depends-on = ["checkout-xp-tests"]
-
-[tool.pixi.feature.lint.dependencies]
-pre-commit = "*"
-
-[tool.pixi.feature.lint.tasks]
-pre-commit-install = "pre-commit install"
-pre-commit = "pre-commit run --all-files"
-lint = { depends-on = ["pre-commit"] }
-
-[tool.pixi.feature.docs.dependencies]
-jupyter-book = "*"
-ghp-import = "*"
-numpy = "*"
-
-[tool.pixi.feature.docs.tasks]
-docs = { cmd = "jupyter-book build mybook/", cwd = "." }
-open-docs.cmd = "open mybook/_build/html/index.html"
-open-docs.cwd = "."
-open-docs.depends-on = ["docs"]
-
-[tool.pixi.feature.py310.dependencies]
-python = "~=3.10.0"
-
-[tool.pixi.feature.py313.dependencies]
-python = "~=3.13.0"
-
-[tool.pixi.feature.test-upstream-dev.dependencies]
-pytest = "*"
-pytest-reportlog = "*"
-
-[tool.pixi.feature.test-upstream-dev.pypi-dependencies]
-numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
-
-[tool.pixi.feature.test-upstream-dev.tasks]
-tests-log = "pytest --report-log output-log.jsonl"
-
-[tool.pixi.environments]
-default = { solve-group = "default" }
-dev.features = ["tests", "xp-tests", "lint", "docs"]
-dev.solve-group = "default"
-docs = { features = ["docs"], solve-group = "default" }
-ci-py310 = { features = ["py310", "tests", "xp-tests"] }
-ci-py313 = { features = ["py313", "tests", "xp-tests"] }
-ci-upstream-dev = { features = ["test-upstream-dev"] }
-pypi-test-extra = ["test"]

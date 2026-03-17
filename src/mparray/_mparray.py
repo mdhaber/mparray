@@ -76,7 +76,7 @@ class MPArray:
 
     def __array_namespace__(self, api_version=None):
         if api_version is None or api_version == '2024.12':
-            from src import mparray as xp
+            import mparray as xp
             return xp
         else:
             message = (f"MPArray interface for Array API version '{api_version}' "

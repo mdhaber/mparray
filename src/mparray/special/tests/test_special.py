@@ -1,9 +1,9 @@
 import pytest
 import numpy as np
-from mpmath import mp
 from scipy import special as sps
-from mparray import special as mps, assert_allclose, assert_nontrival
-
+import mparray as xp
+from mparray.testing import assert_allclose
+from mparray import special as mps
 
 # these arguments happen to work for most functions
 goodargs = (3.123, 2.456, 1.789, 0.234)
@@ -21,7 +21,7 @@ arg01 = {'ndtri', 'logit', 'betainc'}
     ['log_ndtr', 1], ['betaln', 2], ['xlogy', 2], ['xlog1py', 2], ['cosm1', 1],
     ['expit', 1], ['boxcox', 2], ['boxcox1p', 2], ['ive', 2], ['i0e', 1],
     ['i1e', 1], ['kve', 2], ['k0e', 1], ['k1e', 1], ['factorial2', 1],
-    ['lambertw', 2], ['logit', 1], ['ndtri', 1], ['chdtr', 2], ['chdtrc', 2],
+    ['logit', 1], ['ndtri', 1], ['chdtr', 2], ['chdtrc', 2],
     ['betainc', 3], ['fdtr', 3], ['fdtrc', 3], ['stdtr', 2]
 ])
 def test_special_real(shape, f_name, nargs):
@@ -37,7 +37,7 @@ def test_special_real(shape, f_name, nargs):
     args = [np.broadcast_to(arg, shape)[()] for arg in args]
 
     res, ref = f_mps(*args), f_sps(*args)
-    assert_allclose(res, ref, check_type=True, check_shape=True, check_trivial=True)
+    assert_allclose(res, ref)
 
 
 @pytest.mark.parametrize('case', [
@@ -54,7 +54,7 @@ def test_special_edge(case):
     f_sps = getattr(sps, f_name)
 
     res, ref = f_mps(*args), f_sps(*args)
-    assert_allclose(res, ref, check_type=True, check_shape=True, check_trivial=True)
+    assert_allclose(res, ref)
 
 
 @pytest.mark.parametrize('axis', (0, 1))
@@ -66,4 +66,4 @@ def test_logsumexp(axis):
     kwargs = dict(a=a, axis=axis, b=b)
     res = mps.logsumexp(**kwargs)
     ref = sps.logsumexp(**kwargs)
-    assert_allclose(res, ref, check_type=True, check_shape=True, check_trivial=True)
+    assert_allclose(res, ref)

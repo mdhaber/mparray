@@ -1,9 +1,7 @@
 import collections
 import inspect
 import sys
-import types
 import numpy as np
-import numpy.testing
 import mpmath
 from mpmath import mp
 import functools
@@ -78,7 +76,7 @@ class MPArray:
 
     def __array_namespace__(self, api_version=None):
         if api_version is None or api_version == '2024.12':
-            import mparray as xp
+            from src import mparray as xp
             return xp
         else:
             message = (f"MPArray interface for Array API version '{api_version}' "

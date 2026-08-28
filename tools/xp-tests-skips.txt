@@ -38,6 +38,7 @@ array_api_tests/test_has_names.py::test_has_names[linalg-vecdot]
 array_api_tests/test_has_names.py::test_has_names[linalg-vector_norm]
 # due to NumPy behavior - see #7
 array_api_tests/test_data_type_functions.py::test_finfo[float32]
+array_api_tests/test_data_type_functions.py::test_finfo[complex64]
 # because we are not subject to the usual precision limitations - see #9
 array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_left_shift
 array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift
@@ -47,13 +48,12 @@ array_api_tests/test_statistical_functions.py::test_cumulative_sum
 array_api_tests/test_statistical_functions.py::test_cumulative_prod
 array_api_tests/test_statistical_functions.py::test_sum
 array_api_tests/test_statistical_functions.py::test_prod
-# because we're using an outdated version of the test suite - see #10
-array_api_tests/test_operators_and_elementwise_functions.py::test_clip
 # ZeroDivisionError - come back and fix this - see #11
 array_api_tests/test_operators_and_elementwise_functions.py::test_divide
 array_api_tests/test_operators_and_elementwise_functions.py::test_reciprocal
 array_api_tests/test_special_cases.py::test_empty_arrays[std]
 array_api_tests/test_special_cases.py::test_empty_arrays[var]
+array_api_tests/test_statistical_functions.py::test_var
 # Generic implementation uses <, which doesn't work with complex dtypes - see #12
 array_api_tests/test_set_functions.py::test_unique_all
 array_api_tests/test_set_functions.py::test_unique_counts
@@ -233,6 +233,49 @@ array_api_tests/test_special_cases.py::test_iop[__imod__(x1_i < 0 and x2_i is +0
 array_api_tests/test_special_cases.py::test_iop[__imod__(x1_i < 0 and x2_i is -0) -> NaN]
 array_api_tests/test_special_cases.py::test_iop[__imod__(isfinite(x1_i) and x1_i > 0 and x2_i is -infinity) -> x2_i]
 array_api_tests/test_special_cases.py::test_iop[__imod__(isfinite(x1_i) and x1_i < 0 and x2_i is +infinity) -> x2_i]
+# New special case test failures
+array_api_tests/test_special_cases.py::test_unary[acos((real(x_i) is +0 or real(x_i) == -0) and imag(x_i) is +0) -> \u03c0/2 - 0j]
+array_api_tests/test_special_cases.py::test_unary[acos((real(x_i) is +0 or real(x_i) == -0) and imag(x_i) is NaN) -> \u03c0/2 + NaN j]
+array_api_tests/test_special_cases.py::test_unary[acos(real(x_i) is NaN and isfinite(imag(x_i))) -> NaN + NaN j]
+array_api_tests/test_special_cases.py::test_unary[acosh(real(x_i) is NaN and isfinite(imag(x_i))) -> NaN + NaN j]
+array_api_tests/test_special_cases.py::test_unary[acosh(real(x_i) is +0 and imag(x_i) is NaN) -> NaN \xb1 \u03c0j/2]
+array_api_tests/test_special_cases.py::test_unary[asinh(isfinite(real(x_i)) and imag(x_i) is NaN) -> NaN + NaN j]
+array_api_tests/test_special_cases.py::test_unary[asinh(real(x_i) is NaN and imag(x_i) is +0) -> NaN + 0j]
+array_api_tests/test_special_cases.py::test_unary[atanh(real(x_i) is +0 and imag(x_i) is NaN) -> +0 + NaN j]
+array_api_tests/test_special_cases.py::test_unary[cosh(real(x_i) is +infinity and imag(x_i) is +infinity) -> +infinity + NaN j]
+array_api_tests/test_special_cases.py::test_unary[cosh(real(x_i) is +infinity and imag(x_i) is NaN) -> +infinity + NaN j]
+array_api_tests/test_special_cases.py::test_unary[exp(real(x_i) is -infinity and imag(x_i) is +infinity) -> 0 + 0j]
+array_api_tests/test_special_cases.py::test_unary[exp(real(x_i) is +infinity and imag(x_i) is +infinity) -> infinity + NaN j]
+array_api_tests/test_special_cases.py::test_unary[exp(real(x_i) is -infinity and imag(x_i) is NaN) -> 0 + 0j]
+array_api_tests/test_special_cases.py::test_unary[exp(real(x_i) is +infinity and imag(x_i) is NaN) -> infinity + NaN j]
+array_api_tests/test_special_cases.py::test_unary[expm1(real(x_i) is -infinity and imag(x_i) is +infinity) -> -1 + 0j]
+array_api_tests/test_special_cases.py::test_unary[expm1(real(x_i) is +infinity and imag(x_i) is +infinity) -> infinity + NaN j]
+array_api_tests/test_special_cases.py::test_unary[expm1(real(x_i) is -infinity and imag(x_i) is NaN) -> -1 + 0j]
+array_api_tests/test_special_cases.py::test_unary[expm1(real(x_i) is +infinity and imag(x_i) is NaN) -> infinity + NaN j]
+array_api_tests/test_special_cases.py::test_unary[log(real(x_i) is -0 and imag(x_i) is +0) -> -infinity + \u03c0j]
+array_api_tests/test_special_cases.py::test_unary[log((real(x_i) is +infinity or real(x_i) == -infinity) and imag(x_i) is NaN) -> +infinity + NaN j]
+array_api_tests/test_special_cases.py::test_unary[log(real(x_i) is NaN and imag(x_i) is +infinity) -> +infinity + NaN j]
+array_api_tests/test_special_cases.py::test_unary[log1p((real(x_i) is +infinity or real(x_i) == -infinity) and imag(x_i) is NaN) -> +infinity + NaN j]
+array_api_tests/test_special_cases.py::test_unary[log1p(real(x_i) is NaN and isfinite(imag(x_i))) -> NaN + NaN j]
+array_api_tests/test_special_cases.py::test_unary[log1p(real(x_i) is NaN and imag(x_i) is +infinity) -> +infinity + NaN j]
+array_api_tests/test_special_cases.py::test_unary[sinh(real(x_i) is +infinity and imag(x_i) is +infinity) -> infinity + NaN j]
+array_api_tests/test_special_cases.py::test_unary[sinh(real(x_i) is +infinity and imag(x_i) is NaN) -> infinity + NaN j]
+array_api_tests/test_special_cases.py::test_unary[sqrt(real(x_i) is -infinity and imag(x_i) is NaN) -> NaN + infinity j]
+array_api_tests/test_special_cases.py::test_unary[sqrt(real(x_i) is +infinity and imag(x_i) is NaN) -> +infinity + NaN j]
+array_api_tests/test_special_cases.py::test_binary[floor_divide(x1_i is +infinity and isfinite(x2_i) and x2_i > 0) -> +infinity]
+array_api_tests/test_special_cases.py::test_binary[floor_divide(x1_i is +infinity and isfinite(x2_i) and x2_i < 0) -> -infinity]
+array_api_tests/test_special_cases.py::test_binary[floor_divide(x1_i is -infinity and isfinite(x2_i) and x2_i > 0) -> -infinity]
+array_api_tests/test_special_cases.py::test_binary[floor_divide(x1_i is -infinity and isfinite(x2_i) and x2_i < 0) -> +infinity]
 # Generic implementation doesn't propagate NaNs correctly - see #13
 array_api_tests/test_special_cases.py::test_nan_propagation[max]
 array_api_tests/test_special_cases.py::test_nan_propagation[min]
+# This failure is because `arange` generates the array in float32 before converting to arbitrary precision
+# The zeroth element of the array doesn't match the first argument in `float32`
+array_api_tests/test_creation_functions.py::test_arange
+# Need to add isin
+array_api_tests/test_has_names.py::test_has_names[set-isin]
+array_api_tests/test_set_functions.py::TestIsin::test_isin
+array_api_tests/test_set_functions.py::TestIsin::test_isin_scalars
+array_api_tests/test_signatures.py::test_func_signature[isin]
+# Flaky test generation failure?!
+array_api_tests/test_statistical_functions.py::test_std

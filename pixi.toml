@@ -4,7 +4,7 @@ channels = ["https://prefix.dev/conda-forge"]
 platforms = ["linux-64", "osx-arm64", "win-64"]
 preview = ["pixi-build"]
 
-# `mparray` package definition 
+# `mparray` package definition
 
 [package.build.backend]
 name = "pixi-build-python"
@@ -109,6 +109,9 @@ pixi-pycharm = "*"
 ipython = "*"
 python-semantic-release = "*"
 
+[feature.dev.activation.env]
+ARRAY_API_TESTS_MODULE = "mparray"
+
 ## test-upstream-dev
 
 [feature.test-upstream-dev.pypi-dependencies]
@@ -139,7 +142,7 @@ cmd = [
   "git",
   "reset",
   "--hard",
-  "6acde7564f8b144a83b0368cfd75187ae5717fc8",
+  "2026.02.26",
   "&&",
   "git",
   "submodule",

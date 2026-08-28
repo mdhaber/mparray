@@ -392,7 +392,7 @@ def copysign(x1, x2, /):
 
 
 def nextafter(x1, x2, /):
-    x1, x2 = asarray(x1), asarray(x2)
+    x1, x2 = _promote(x1, x2)
     inc = 10 ** (floor(log10(x1)) - mp.dps)  # TODO: defined for other types
     return x1 + sign(x2 - x1)*inc
 
@@ -539,7 +539,7 @@ for name in sort_names:
 ## Statistical Functions and Utility Functions ##
 statistical_names_float = ['mean', 'var', 'std']
 statistical_names_dtype = ['max', 'min', 'sum', 'prod',
-                           'cumulative_sum', 'cumulative_prod', 'diff']
+                           'cumulative_sum', 'cumulative_prod']
 statistical_names_none = ['argmax', 'argmin', 'count_nonzero', 'all', 'any']
 for name in statistical_names_float + statistical_names_dtype + statistical_names_none:
     def fun(x, *args, name=name, **kwargs):
@@ -550,6 +550,14 @@ for name in statistical_names_float + statistical_names_dtype + statistical_name
             res = getattr(np, name)(x._data, *args, **kwargs)
         return asarray(res, dtype=None if name in statistical_names_none else x.dtype)
     mod[name] = fun
+
+
+def diff(x, *, axis=-1, n=1, prepend=None, append=None):
+    x, prepend, append = _promote(x, prepend, append)
+    prepend = prepend._data if prepend is not None else np._NoValue
+    append = append._data if append is not None else np._NoValue
+    res = np.diff(x._data, axis=axis, n=n, prepend=prepend, append=append)
+    return asarray(res, dtype=x.dtype)
 
 
 _dont_mod_signature = {'clip', 'sort', 'argsort'}

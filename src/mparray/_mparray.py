@@ -193,12 +193,11 @@ for name in unary_names_py:
 # Methods that return the result of an elementwise binary operation
 binary_names = ['__add__', '__sub__', '__and__', '__eq__', '__ge__', '__gt__',
                 '__le__', '__lshift__', '__lt__', '__mod__', '__mul__', '__ne__',
-                '__or__', '__pow__', '__rshift__', '__sub__', '__truediv__',
-                '__xor__'] + ['__divmod__', '__floordiv__']
+                '__or__', '__rshift__', '__sub__', '__xor__']
 # Methods that return the result of an elementwise binary operation (reflected)
-rbinary_names = ['__radd__', '__rand__', '__rdivmod__', '__rfloordiv__',
-                 '__rlshift__', '__rmod__', '__rmul__', '__ror__', '__rpow__',
-                 '__rrshift__', '__rsub__', '__rtruediv__', '__rxor__']
+rbinary_names = ['__radd__', '__rand__',
+                 '__rlshift__', '__rmul__', '__ror__', '__rpow__',
+                 '__rrshift__', '__rsub__', '__rxor__']
 ensure_output_dtype = ['__eq__', '__ge__', '__gt__', '__le__', '__lt__',
                        '__ne__', '__rand__', '__ror__', '__rxor__']
 for name in binary_names + rbinary_names:
@@ -209,10 +208,11 @@ for name in binary_names + rbinary_names:
         return asarray(data, dtype=dtype)
     setattr(MPArray, name, fun)
 
+
 # In-place methods
-desired_names = ['__iadd__', '__iand__', '__ifloordiv__', '__ilshift__',
-                 '__imod__', '__imul__', '__ior__', '__ipow__', '__irshift__',
-                 '__isub__', '__itruediv__', '__ixor__']
+desired_names = ['__iadd__', '__iand__', '__ilshift__',
+                 '__imul__', '__ior__', '__irshift__',
+                 '__isub__', '__ixor__']
 for name in desired_names:
     def fun(self, other, name=name, **kwargs):
         other = astype(other, self.dtype)
@@ -316,7 +316,7 @@ for name in elementwise_numpy:
 elementwise_no_dtype = ['abs', 'bitwise_and', 'bitwise_left_shift', 'bitwise_invert',
                         'bitwise_or', 'bitwise_right_shift', 'bitwise_xor', 'negative',
                         'positive', 'square']
-elementwise_promote_numpy = ['add', 'remainder', 'pow', 'multiply',
+elementwise_promote_numpy = ['add', 'remainder', 'multiply',
                              'maximum', 'minimum', 'subtract']
 for name in elementwise_no_dtype + elementwise_promote_numpy:
     def fun(*args, name=name, **kwargs):
@@ -329,17 +329,57 @@ for name in elementwise_no_dtype + elementwise_promote_numpy:
         return asarray(getattr(np, name)(*args, **kwargs), dtype=dtype)
     mod[name] = fun
 
-mp.divide = lambda x, y: x / y
-mp.reciprocal = lambda x: 1 / x
+
+def _dividelike_special_case(x1, x2, *, op):
+    return op(np.astype(x1._data, x1.dtype), np.astype(x2._data, x2.dtype))
+
+
+def _dividelike(x1, x2, *, op):
+    x1, x2 = _promote(x1, x2)
+    x1, x2 = broadcast_arrays(x1, x2)
+    res = empty(x1.shape, dtype=x1.dtype)
+    i = (x2 != 0)._data & isfinite(x2)._data
+    res._data[i] = op(x1[i]._data, x2[i]._data)
+    res._data[~i] = _dividelike_special_case(x1[~i], x2[~i], op=op)
+    return res
+
+
+def divide(x1, x2, /):
+    return _dividelike(x1, x2, op=lambda x1, x2: x1 / x2)
+
+
+def floor_divide(x1, x2, /):
+    return _dividelike(x1, x2, op=lambda x1, x2: x1 // x2)
+
+
+def remainder(x1, x2, /):
+    return _dividelike(x1, x2, op=lambda x1, x2: x1 % x2)
+
+
+def pow(x1, x2, /):
+    x1, x2 = _promote(x1, x2)
+    x1, x2 = broadcast_arrays(x1, x2)
+    res = empty(x1.shape, dtype=x1.dtype)
+    i =  (x1 != 0)._data
+    res._data[i] = x1[i]._data ** x2[i]._data
+    res._data[~i] = np.astype(x1[~i]._data, x1.dtype) ** np.astype(x2[~i]._data, x2.dtype)
+    return res
+
+
+setattr(MPArray, "__truediv__", divide)
+setattr(MPArray, "__floordiv__", floor_divide)
+setattr(MPArray, "__mod__", remainder)
+setattr(MPArray, "__pow__", pow)
+reciprocal = lambda x, /: divide(1, x)
+
 mp.logaddexp = lambda x, y: mp.log(mp.exp(x) + mp.exp(y))
 mp.imag = lambda x: x.imag
 mp.real = lambda x: x.real
 mp.round = lambda x: mp.nint(x)
 mp.trunc = lambda x: mp.floor(x) if x > 0 else mp.ceil(x)
 elementwise_mp = ['acos', 'acosh', 'asin', 'asinh', 'atan', 'atan2', 'atanh', 'cos',
-                  'cosh', 'divide', 'exp', 'expm1', 'hypot', 'log', 'log1p', 'log2',
-                  'log10', 'logaddexp', 'reciprocal', 'sin', 'sinh', 'sqrt', 'tan',
-                  'tanh']
+                  'cosh', 'exp', 'expm1', 'hypot', 'log', 'log1p', 'log2',
+                  'log10', 'logaddexp', 'sin', 'sinh', 'sqrt', 'tan', 'tanh']
 elementwise_mp_float = ['ceil', 'conj', 'floor', 'imag', 'real', 'round', 'trunc']
 for name in elementwise_mp + elementwise_mp_float:
     def fun(*args, name=name, **kwargs):
@@ -368,11 +408,6 @@ for name in elementwise_is:
         out = np.vectorize(getattr(mp, name), otypes=[bool])(_get_data(arg), **kwargs)
         return asarray(out, dtype=np.bool)
     mod[name] = fun
-
-
-def floor_divide(x1, x2, /):
-    x1, x2 = _promote(x1, x2)
-    return asarray(x1 // x2, dtype=x1.dtype)
 
 
 def sign(x, /):

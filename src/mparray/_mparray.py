@@ -525,6 +525,13 @@ for name in unique_names:
         return result_class(*result_list)
     mod[name] = fun
 
+
+def isin(x1, x2, /, *, invert=False):
+    x1, x2 = _promote(x1, x2)
+    data = np.isin(x1._data, x2._data, invert=invert)
+    return asarray(data, dtype=bool)
+
+
 ## Sorting Functions ##
 sort_names = ['sort', 'argsort']
 for name in sort_names:
@@ -552,7 +559,7 @@ for name in statistical_names_float + statistical_names_dtype + statistical_name
     mod[name] = fun
 
 
-def diff(x, *, axis=-1, n=1, prepend=None, append=None):
+def diff(x, /, *, axis=-1, n=1, prepend=None, append=None):
     x, prepend, append = _promote(x, prepend, append)
     prepend = prepend._data if prepend is not None else np._NoValue
     append = append._data if append is not None else np._NoValue

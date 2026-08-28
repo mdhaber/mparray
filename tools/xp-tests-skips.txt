@@ -272,10 +272,5 @@ array_api_tests/test_special_cases.py::test_nan_propagation[min]
 # This failure is because `arange` generates the array in float32 before converting to arbitrary precision
 # The zeroth element of the array doesn't match the first argument in `float32`
 array_api_tests/test_creation_functions.py::test_arange
-# Need to add isin
-array_api_tests/test_has_names.py::test_has_names[set-isin]
-array_api_tests/test_set_functions.py::TestIsin::test_isin
-array_api_tests/test_set_functions.py::TestIsin::test_isin_scalars
-array_api_tests/test_signatures.py::test_func_signature[isin]
 # Flaky test generation failure?!
 array_api_tests/test_statistical_functions.py::test_std

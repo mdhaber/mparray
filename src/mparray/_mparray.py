@@ -31,7 +31,7 @@ class MPArray:
         if np.isdtype(dtype, 'bool'):
             type_ = bool
             dtype_ = np.bool
-        if np.isdtype(dtype, 'integral'):
+        elif np.isdtype(dtype, 'integral'):
             type_ = int
         elif np.isdtype(dtype, 'real floating'):
             def type_(x):
@@ -41,8 +41,17 @@ class MPArray:
                     return mp.mpf(np.nan)
         elif np.isdtype(dtype, 'complex floating'):
             type_ = lambda x: mp.mpc(x) if isinstance(x, (mp.mpf, mp.mpc)) else mp.mpc(complex(x))
+        else:
+            type_ = mp.mpf
+            dtype = result_type(float64)
 
-        data = np.asarray([type_(el) for el in data.ravel()], dtype=dtype_)
+        try:
+            data = np.asarray([type_(el) for el in data.ravel()], dtype=dtype_)
+        except TypeError:
+            type_ = mp.mpc
+            dtype = result_type(complex128)
+            data = np.asarray([type_(el) for el in data.ravel()], dtype=dtype_)
+
         data = np.reshape(data, shape)
 
         self._data = data

@@ -4,15 +4,19 @@ import mparray as xp
 from mpmath import mp
 
 
+@pytest.mark.parametrize('shape', [(), (1,)])
 @pytest.mark.parametrize('data, type_, dtype', [
     (True, xp.bool, xp.bool),
     (1, int, xp.int64),
     (1., mp.mpf, xp.float64),
-    (1+1j, mp.mpc, xp.complex128)
+    (1+1j, mp.mpc, xp.complex128),
+    (mp.mpf(1.), mp.mpf, xp.float64),
+    (mp.mpc(1+1j), mp.mpc, xp.complex128),
 ])
-def test_default_types_dtypes(data, type_, dtype):
+def test_default_types_dtypes(shape, data, type_, dtype):
+    data = [data] if shape else data
     x = xp.asarray(data)
-    assert type(x._data[()]) == type_
+    assert type(xp.reshape(x, -1)[0]._data[()]) == type_
     assert x.dtype == dtype
 
 

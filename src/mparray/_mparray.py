@@ -119,9 +119,6 @@ class MPArray:
         other = asarray(other, dtype=self.dtype, device=self.device)
         self._data.__setitem__(key, other._data[()])
 
-    def __iter__(self):
-        return iter(self._data)
-
     def __deepcopy__(self, memo=None):
         return asarray(self, copy=True)
 
@@ -344,6 +341,7 @@ def _dividelike_special_case(x1, x2, *, op):
 
 
 def _dividelike(x1, x2, *, op):
+    # mpmath division by zero raises,
     x1, x2 = _promote(x1, x2)
     x1, x2 = broadcast_arrays(x1, x2)
     res = empty(x1.shape, dtype=x1.dtype)
@@ -378,6 +376,9 @@ def pow(x1, x2, /):
 setattr(MPArray, "__truediv__", divide)
 setattr(MPArray, "__floordiv__", floor_divide)
 setattr(MPArray, "__mod__", remainder)
+setattr(MPArray, "__rtruediv__", lambda x, y: divide(y, x))
+setattr(MPArray, "__rfloordiv__", lambda x, y: floor_divide(y, x))
+setattr(MPArray, "__rmod__", lambda x, y: remainder(y, x))
 setattr(MPArray, "__pow__", pow)
 reciprocal = lambda x, /: divide(1, x)
 
@@ -405,6 +406,21 @@ for name in elementwise_mp + elementwise_mp_float:
         dtype = (np.float64 if "128" in str(args[0].dtype) else np.float32) if name in {'imag', 'real'} else args[0].dtype
         return asarray(out, dtype=dtype)
     mod[name] = fun
+
+
+def _mimum(x1, x2, /, op):
+    res = op(x1, x2)
+    i = isnan(x1) | isnan(x2)
+    res[i] = nan
+    return res
+
+
+def maximum(x1, x2, maximum=maximum):
+    return _mimum(x1, x2, op=maximum)
+
+
+def minimum(x1, x2, minimum=minimum):
+    return _mimum(x1, x2, op=minimum)
 
 
 elementwise_is = ['isfinite', 'isinf', 'isnan']
@@ -601,6 +617,22 @@ for name in statistical_names_float + statistical_names_dtype + statistical_name
             res = getattr(np, name)(x._data, *args, **kwargs)
         return asarray(res, dtype=None if name in statistical_names_none else x.dtype)
     mod[name] = fun
+
+
+def _minmax(x1, /, *, axis=None, keepdims=False, op):
+    res = op(x1, axis=axis, keepdims=keepdims)
+    if isdtype(x1.dtype, ("real floating", "complex floating")):
+        i = any(isnan(x1), axis=axis, keepdims=keepdims)
+        res[i] = nan
+    return res
+
+
+def min(x1, /, *, axis=None, keepdims=False, min=min):
+    return _minmax(x1, axis=axis, keepdims=keepdims, op=min)
+
+
+def max(x1, /, *, axis=None, keepdims=False, max=max):
+    return _minmax(x1, axis=axis, keepdims=keepdims, op=max)
 
 
 def diff(x, /, *, axis=-1, n=1, prepend=None, append=None):

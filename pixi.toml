@@ -27,7 +27,6 @@ tests = { features = ["tests"], solve-group = "default" }
 # docs = { features = ["docs"], solve-group = "default" }
 # dev = { features = ["tests", "xp-tests", "lint", "docs", "dev"], solve-group = "default" }
 dev = { features = ["tests", "xp-tests", "dev"], solve-group = "default" }
-ci-py312 = ["py312", "tests", "xp-tests"]
 ci-py313 = ["py313", "tests", "xp-tests"]
 ci-upstream-dev = ["test-upstream-dev", "tests"]
 
@@ -182,9 +181,6 @@ depends-on = ["checkout-xp-tests"]
 default-environment = "ci-py313"
 
 ## python versions
-
-[feature.py312.dependencies]
-python = "~=3.12.0"
 
 [feature.py313.dependencies]
 python = "~=3.13.0"

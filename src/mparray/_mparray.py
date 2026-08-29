@@ -36,7 +36,7 @@ class MPArray:
         elif np.isdtype(dtype, 'real floating'):
             def type_(x):
                 try:
-                    return mp.mpf(x) if isinstance(x, (mp.mpf, mp.mpc, int)) else mp.mpf(float(x))
+                    return mp.mpf(x) if isinstance(x, (int, mp.mpf, mp.mpc)) else mp.mpf(float(x))
                 except TypeError:
                     return mp.mpf(np.nan)
         elif np.isdtype(dtype, 'complex floating'):

@@ -11,7 +11,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.13",
 ]
-version = "0.0.0"
+version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = ["numpy", "mpmath", "scipy"]
 description = "Array API-compatible, arbitrary-precision arrays"

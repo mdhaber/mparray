@@ -56,14 +56,14 @@ jobs:
 
       - name: Test package
         run: pixi run tests
-  
+
   xp-tests:
     name: array-api-tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        environment: [ci-py313, ci-py310]
+        environment: [ci-py313, ci-py311]
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

@@ -28,7 +28,7 @@ docs = ["jupyter-book", "ghp-import"]
 Home = "https://github.com/mdhaber/mparray"
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 builtins = ["ellipsis"]
 exclude = [".git", ".eggs", "build", "dist", "__pycache__"]
 line-length = 100

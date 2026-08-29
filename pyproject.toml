@@ -9,14 +9,12 @@ readme = "README.md"
 license = { file = "LICENSE" }
 classifiers = [
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
 version = "0.0.0"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = ["numpy", "mpmath", "scipy"]
+description = "Array API-compatible, arbitrary-precision arrays"
 
 [project.optional-dependencies]
 test = [
@@ -28,7 +26,7 @@ docs = ["jupyter-book", "ghp-import"]
 Home = "https://github.com/mdhaber/mparray"
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py313"
 builtins = ["ellipsis"]
 exclude = [".git", ".eggs", "build", "dist", "__pycache__"]
 line-length = 100

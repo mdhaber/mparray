@@ -202,7 +202,7 @@ binary_names = ['__add__', '__sub__', '__and__', '__eq__', '__ge__', '__gt__',
                 '__or__', '__rshift__', '__sub__', '__xor__']
 # Methods that return the result of an elementwise binary operation (reflected)
 rbinary_names = ['__radd__', '__rand__',
-                 '__rlshift__', '__rmul__', '__ror__', '__rpow__',
+                 '__rlshift__', '__rmul__', '__ror__',
                  '__rrshift__', '__rsub__', '__rxor__']
 ensure_output_dtype = ['__eq__', '__ge__', '__gt__', '__le__', '__lt__',
                        '__ne__', '__rand__', '__ror__', '__rxor__']
@@ -367,7 +367,7 @@ def pow(x1, x2, /):
     x1, x2 = _promote(x1, x2)
     x1, x2 = broadcast_arrays(x1, x2)
     res = empty(x1.shape, dtype=x1.dtype)
-    i =  (x1 != 0)._data
+    i = (x1 != 0)._data
     res._data[i] = x1[i]._data ** x2[i]._data
     res._data[~i] = np.astype(x1[~i]._data, x1.dtype) ** np.astype(x2[~i]._data, x2.dtype)
     return res
@@ -376,10 +376,11 @@ def pow(x1, x2, /):
 setattr(MPArray, "__truediv__", divide)
 setattr(MPArray, "__floordiv__", floor_divide)
 setattr(MPArray, "__mod__", remainder)
+setattr(MPArray, "__pow__", pow)
 setattr(MPArray, "__rtruediv__", lambda x, y: divide(y, x))
 setattr(MPArray, "__rfloordiv__", lambda x, y: floor_divide(y, x))
 setattr(MPArray, "__rmod__", lambda x, y: remainder(y, x))
-setattr(MPArray, "__pow__", pow)
+setattr(MPArray, "__rpow__", lambda x, y: pow(y, x))
 reciprocal = lambda x, /: divide(1, x)
 
 mp.logaddexp = lambda x, y: mp.log(mp.exp(x) + mp.exp(y))
@@ -604,17 +605,17 @@ for name in sort_names:
     mod[name] = fun
 
 ## Statistical Functions and Utility Functions ##
-statistical_names_float = ['mean', 'var', 'std']
-statistical_names_dtype = ['max', 'min']
-statistical_names_int = ['sum', 'prod', 'cumulative_sum', 'cumulative_prod']
-statistical_names_none = ['argmax', 'argmin', 'count_nonzero', 'all', 'any']
+statistical_names_float = ['mean', 'var', 'std']  # minimum dtype is float
+statistical_names_dtype = ['max', 'min']  # minimum dtype is input dtype
+statistical_names_special = ['sum', 'prod', 'cumulative_sum', 'cumulative_prod']  # special rules
+statistical_names_none = ['argmax', 'argmin', 'count_nonzero', 'all', 'any']  # no special considerations
 for name in (statistical_names_float + statistical_names_dtype
-             + statistical_names_none + statistical_names_int):
+             + statistical_names_none + statistical_names_special):
     def fun(x, *args, name=name, **kwargs):
         dtype = kwargs.pop('dtype', None)
         x = asarray(x)
         if dtype is None:
-            if isdtype(x.dtype, 'integral') and name in statistical_names_int:
+            if isdtype(x.dtype, 'integral') and name in statistical_names_special:
                 dtype = int64 if isdtype(x.dtype, 'signed integer') else uint64
             elif name in statistical_names_float:
                 dtype = result_type(x.dtype, float)

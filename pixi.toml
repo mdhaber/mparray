@@ -120,7 +120,8 @@ numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-ni
 
 [feature.xp-tests.dependencies]
 pytest-json-report = "*"
-hypothesis = "*"
+# pin hypothesis to prevent stalling on test_pow[pow(x1, x2)]
+hypothesis = "==6.151.14"
 ndindex = "*"
 array-api-compat = "*"
 

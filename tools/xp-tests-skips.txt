@@ -180,5 +180,3 @@ array_api_tests/test_special_cases.py::test_iop[__ipow__(x1_i < 0 and isfinite(x
 # This failure is because `arange` generates the array in float32 before converting to arbitrary precision
 # The zeroth element of the array doesn't match the first argument in `float32`
 array_api_tests/test_creation_functions.py::test_arange
-# Stalling
-array_api_tests/test_operators_and_elementwise_functions.py::test_pow[pow(x1, x2)]

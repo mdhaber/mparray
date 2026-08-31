@@ -635,6 +635,26 @@ def max(x1, /, *, axis=None, keepdims=False, max=max):
     return _minmax(x1, axis=axis, keepdims=keepdims, op=max)
 
 
+# redefine statistical functions to avoid ZeroDivisionErrors
+# Ideally, fix in `mpmath`
+def mean(x1, /, *, axis=None, keepdims=0):
+    x1, = _promote(x1, atleast=float32)
+    n = _get_length(x1, axis=axis)
+    s = sum(x1, axis=axis, keepdims=keepdims)
+    return s / n
+
+
+def var(x1, /, *, axis=None, correction=0, keepdims=0):
+    x1, = _promote(x1, atleast=float32)
+    n = _get_length(x1, axis=axis)
+    m = mean(x1, axis=axis, keepdims=True)
+    return mean((x1 - m)**2, axis=axis, keepdims=keepdims) * n / (n-correction)
+
+
+def std(x1, /, *, axis=None, correction=0, keepdims=0):
+    return var(x1, axis=axis, correction=correction, keepdims=keepdims)
+
+
 def diff(x, /, *, axis=-1, n=1, prepend=None, append=None):
     x, prepend, append = _promote(x, prepend, append)
     prepend = prepend._data if prepend is not None else np._NoValue
@@ -710,6 +730,11 @@ def _get_dtype(x):
         return x(1)
 
     return getattr(x, "dtype", x)
+
+
+def _get_length(x, *, axis):
+    return int(x.size if axis is None
+               else np.prod(np.asarray(x.shape)[np.asarray(axis, dtype=int)]))
 
 
 def _promote(*args, atleast=bool):

@@ -48,10 +48,6 @@ array_api_tests/test_statistical_functions.py::test_cumulative_sum
 array_api_tests/test_statistical_functions.py::test_cumulative_prod
 array_api_tests/test_statistical_functions.py::test_sum
 array_api_tests/test_statistical_functions.py::test_prod
-# ZeroDivisionError - come back and fix this - see #11
-array_api_tests/test_special_cases.py::test_empty_arrays[std]
-array_api_tests/test_special_cases.py::test_empty_arrays[var]
-array_api_tests/test_statistical_functions.py::test_var
 # Generic implementation uses <, which doesn't work with complex dtypes - see #12
 array_api_tests/test_set_functions.py::test_unique_all
 array_api_tests/test_set_functions.py::test_unique_counts
@@ -144,6 +140,7 @@ array_api_tests/test_special_cases.py::test_unary[acos((real(x_i) is +0 or real(
 array_api_tests/test_special_cases.py::test_unary[acos((real(x_i) is +0 or real(x_i) == -0) and imag(x_i) is NaN) -> \u03c0/2 + NaN j]
 array_api_tests/test_special_cases.py::test_unary[acos(real(x_i) is NaN and isfinite(imag(x_i))) -> NaN + NaN j]
 array_api_tests/test_special_cases.py::test_unary[acosh(real(x_i) is +0 and imag(x_i) is NaN) -> NaN \xb1 \u03c0j/2]
+array_api_tests/test_special_cases.py::test_unary[acosh(real(x_i) is NaN and isfinite(imag(x_i))) -> NaN + NaN j
 array_api_tests/test_special_cases.py::test_unary[asinh(real(x_i) is NaN and imag(x_i) is +0) -> NaN + 0j]
 array_api_tests/test_special_cases.py::test_unary[asinh(isfinite(real(x_i)) and imag(x_i) is NaN) -> NaN + NaN j]
 array_api_tests/test_special_cases.py::test_unary[atanh(real(x_i) is +0 and imag(x_i) is NaN) -> +0 + NaN j]
@@ -188,5 +185,5 @@ array_api_tests/test_special_cases.py::test_iop[__ipow__(x1_i < 0 and isfinite(x
 # This failure is because `arange` generates the array in float32 before converting to arbitrary precision
 # The zeroth element of the array doesn't match the first argument in `float32`
 array_api_tests/test_creation_functions.py::test_arange
-# Flaky test generation failure?!
-array_api_tests/test_statistical_functions.py::test_std
+# Stalling
+array_api_tests/test_operators_and_elementwise_functions.py::test_pow[pow(x1, x2)]

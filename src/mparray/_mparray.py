@@ -605,13 +605,22 @@ for name in sort_names:
 
 ## Statistical Functions and Utility Functions ##
 statistical_names_float = ['mean', 'var', 'std']
-statistical_names_dtype = ['max', 'min', 'sum', 'prod',
-                           'cumulative_sum', 'cumulative_prod']
+statistical_names_dtype = ['max', 'min']
+statistical_names_int = ['sum', 'prod', 'cumulative_sum', 'cumulative_prod']
 statistical_names_none = ['argmax', 'argmin', 'count_nonzero', 'all', 'any']
-for name in statistical_names_float + statistical_names_dtype + statistical_names_none:
+for name in (statistical_names_float + statistical_names_dtype
+             + statistical_names_none + statistical_names_int):
     def fun(x, *args, name=name, **kwargs):
-        dtype = kwargs.pop('dtype', float if name in statistical_names_float else bool)
-        x, = _promote(x, atleast=dtype)  # TODO: follow standard precisely?
+        dtype = kwargs.pop('dtype', None)
+        x = asarray(x)
+        if dtype is None:
+            if isdtype(x.dtype, 'integral') and name in statistical_names_int:
+                dtype = int64 if isdtype(x.dtype, 'signed integer') else uint64
+            elif name in statistical_names_float:
+                dtype = result_type(x.dtype, float)
+            else:
+                dtype = x.dtype
+        x = asarray(x, dtype=dtype)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             res = getattr(np, name)(x._data, *args, **kwargs)

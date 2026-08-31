@@ -43,11 +43,6 @@ array_api_tests/test_data_type_functions.py::test_finfo[complex64]
 array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_left_shift
 array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift
 array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_invert
-# Funny promotion rules - see #8
-array_api_tests/test_statistical_functions.py::test_cumulative_sum
-array_api_tests/test_statistical_functions.py::test_cumulative_prod
-array_api_tests/test_statistical_functions.py::test_sum
-array_api_tests/test_statistical_functions.py::test_prod
 # Generic implementation uses <, which doesn't work with complex dtypes - see #12
 array_api_tests/test_set_functions.py::test_unique_all
 array_api_tests/test_set_functions.py::test_unique_counts
@@ -140,7 +135,7 @@ array_api_tests/test_special_cases.py::test_unary[acos((real(x_i) is +0 or real(
 array_api_tests/test_special_cases.py::test_unary[acos((real(x_i) is +0 or real(x_i) == -0) and imag(x_i) is NaN) -> \u03c0/2 + NaN j]
 array_api_tests/test_special_cases.py::test_unary[acos(real(x_i) is NaN and isfinite(imag(x_i))) -> NaN + NaN j]
 array_api_tests/test_special_cases.py::test_unary[acosh(real(x_i) is +0 and imag(x_i) is NaN) -> NaN \xb1 \u03c0j/2]
-array_api_tests/test_special_cases.py::test_unary[acosh(real(x_i) is NaN and isfinite(imag(x_i))) -> NaN + NaN j
+array_api_tests/test_special_cases.py::test_unary[acosh(real(x_i) is NaN and isfinite(imag(x_i))) -> NaN + NaN j]
 array_api_tests/test_special_cases.py::test_unary[asinh(real(x_i) is NaN and imag(x_i) is +0) -> NaN + 0j]
 array_api_tests/test_special_cases.py::test_unary[asinh(isfinite(real(x_i)) and imag(x_i) is NaN) -> NaN + NaN j]
 array_api_tests/test_special_cases.py::test_unary[atanh(real(x_i) is +0 and imag(x_i) is NaN) -> +0 + NaN j]

@@ -14,7 +14,7 @@ version = "*"
 uv = "*"
 
 [package.run-dependencies]
-numpy = "*"
+numpy = ">=2.5.2"
 mpmath = "*"
 scipy = "*"
 

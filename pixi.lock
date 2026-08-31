@@ -2556,7 +2556,7 @@ packages:
   variants:
     target_platform: noarch
   depends:
-  - numpy
+  - numpy >=2.5.2
   - mpmath
   - scipy
   - python >=3.12

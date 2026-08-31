@@ -1,9 +1,11 @@
 import sys as sys
+
 import numpy as np
 from mpmath import mp
+from scipy import special
+
 import mparray as xp
 from mparray._mparray import _vectorize as vectorize
-from scipy import special
 
 # add imported names to `_imports` to avoid altering their documentation and exposing
 # as public members of `mparray.special`.
@@ -218,7 +220,7 @@ def stdtr(df, t):
 
 # generate rough documentation
 _preface = ["The following is the documentation for the corresponding "
-            f"attribute of `scipy.special`.",
+            "attribute of `scipy.special`.",
             "MPArray behavior is the same except that the calculation is "
             "carried out in the appropriate precision.\n\n"]
 _preface = "\n".join(_preface)

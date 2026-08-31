@@ -1,9 +1,9 @@
-import pytest
 import numpy as np
+import pytest
 from scipy import special as sps
-import mparray as xp
-from mparray.testing import assert_allclose
+
 from mparray import special as mps
+from mparray.testing import assert_allclose
 
 # these arguments happen to work for most functions
 goodargs = (3.123, 2.456, 1.789, 0.234)

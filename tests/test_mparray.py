@@ -1,7 +1,7 @@
 import pytest
-import numpy as np
-import mparray as xp
 from mpmath import mp
+
+import mparray as xp
 
 
 @pytest.mark.parametrize('shape', [(), (1,)])
@@ -16,7 +16,7 @@ from mpmath import mp
 def test_default_types_dtypes(shape, data, type_, dtype):
     data = [data] if shape else data
     x = xp.asarray(data)
-    assert type(xp.reshape(x, -1)[0]._data[()]) == type_
+    assert type(xp.reshape(x, -1)[0]._data[()]) is type_
     assert x.dtype == dtype
 
 

@@ -23,7 +23,7 @@ scipy = "*"
 [environments]
 default = { solve-group = "default" }
 tests = { features = ["tests"], solve-group = "default" }
-# lint = { features = ["lint"], solve-group = "default" }
+lint = { features = ["lint"], solve-group = "default" }
 # docs = { features = ["docs"], solve-group = "default" }
 # dev = { features = ["tests", "xp-tests", "lint", "docs", "dev"], solve-group = "default" }
 dev = { features = ["tests", "xp-tests", "dev"], solve-group = "default" }
@@ -72,18 +72,14 @@ default-environment = "tests"
 cmd = "pytest tests/ --report-log output-log.jsonl"
 default-environment = "tests"
 
-## lint (not set up yet)
+## lint
 
-# [feature.lint.dependencies]
-# pre-commit = "*"
+[feature.lint.dependencies]
+ruff = "*"
 
-# [feature.lint.tasks.pre-commit-install]
-# cmd = "pre-commit install"
-# default-environment = "lint"
-
-# [feature.lint.tasks.lint]
-# cmd = "pre-commit run --all-files"
-# default-environment = "lint"
+[feature.lint.tasks.lint]
+cmd = "ruff check ."
+default-environment = "lint"
 
 ## docs (not set up yet)
 

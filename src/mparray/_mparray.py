@@ -1,11 +1,13 @@
 import collections
+import dataclasses
+import functools
 import inspect
 import sys
-import numpy as np
-import mpmath
-from mpmath import mp
-import functools
 import warnings
+
+import mpmath
+import numpy as np
+from mpmath import mp
 
 
 class MPArray:
@@ -397,14 +399,16 @@ for name in elementwise_mp + elementwise_mp_float:
         atleast = bool if name in elementwise_mp_float else 1.0
         args = _promote(*args, atleast=atleast)
 
-        if name in elementwise_mp_float and np.isdtype(args[0].dtype, ('bool', 'integral')):
+        if (name in elementwise_mp_float
+                and np.isdtype(args[0].dtype, ('bool', 'integral'))):
             return args[0]  # TODO: fix imag
 
         data = (_get_data(arg) for arg in args)
         out = np.vectorize(getattr(mp, name), otypes=[object])(*data, **kwargs)
         # TODO: preserve complex output dtype for funcs like acos
 
-        dtype = (np.float64 if "128" in str(args[0].dtype) else np.float32) if name in {'imag', 'real'} else args[0].dtype
+        dtype = (np.float64 if "128" in str(args[0].dtype)
+                 else np.float32) if name in {'imag', 'real'} else args[0].dtype
         return asarray(out, dtype=dtype)
     mod[name] = fun
 
@@ -488,7 +492,7 @@ for name in linalg_names:
         x1, x2 = _get_data(x1, x2)
         out = getattr(np, name)(x1, x2, **kwargs)
         out = (getattr(np, name)(x1.astype(int), x2.astype(int), **kwargs)
-               if np.any(out == None) else out)  # see gh-31019
+               if np.any(out is None) else out)  # see gh-31019
         return asarray(out, dtype=dtype)
     mod[name] = fun
 
@@ -608,7 +612,8 @@ for name in sort_names:
 statistical_names_float = ['mean', 'var', 'std']  # minimum dtype is float
 statistical_names_dtype = ['max', 'min']  # minimum dtype is input dtype
 statistical_names_special = ['sum', 'prod', 'cumulative_sum', 'cumulative_prod']  # special rules
-statistical_names_none = ['argmax', 'argmin', 'count_nonzero', 'all', 'any']  # no special considerations
+statistical_names_none = ['argmax', 'argmin', 'count_nonzero',
+                          'all', 'any']  # no special considerations
 for name in (statistical_names_float + statistical_names_dtype
              + statistical_names_none + statistical_names_special):
     def fun(x, *args, name=name, **kwargs):
@@ -675,7 +680,7 @@ def diff(x, /, *, axis=-1, n=1, prepend=None, append=None):
 
 _dont_mod_signature = {'clip', 'sort', 'argsort'}
 preface = ["The following is the documentation for the corresponding "
-           f"attribute of NumPy.",
+           "attribute of NumPy.",
            "MPArray behavior is the same except that the calculation is "
            "carried out in the appropriate precision.\n\n"]
 preface = "\n".join(preface)

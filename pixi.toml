@@ -28,6 +28,7 @@ tests = { features = ["tests"], solve-group = "default" }
 # dev = { features = ["tests", "xp-tests", "lint", "docs", "dev"], solve-group = "default" }
 dev = { features = ["tests", "xp-tests", "dev"], solve-group = "default" }
 ci-py313 = ["py313", "tests", "xp-tests"]
+ci-py312 = ["py312", "tests", "xp-tests"]
 ci-upstream-dev = ["test-upstream-dev", "tests"]
 
 # default feature definition
@@ -185,3 +186,6 @@ default-environment = "ci-py313"
 
 [feature.py313.dependencies]
 python = "~=3.13.0"
+
+[feature.py312.dependencies]
+python = "~=3.12.0"

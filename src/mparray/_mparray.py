@@ -735,9 +735,9 @@ def _get_dtype(x):
     if isinstance(x, bool) or x is np.bool:
         return np.bool
     elif isinstance(x, mp.mpf):
-        return np.float64
+        return float(1)
     elif isinstance(x, mp.mpc):
-        return np.complex128
+        return complex(1)
     elif isinstance(x, type) and not ((x is bool) or (x is int)
                                       or (x is float) or (x is complex)):
         return x(0).dtype

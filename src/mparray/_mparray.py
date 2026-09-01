@@ -667,7 +667,7 @@ def var(x1, /, *, axis=None, correction=0, keepdims=0):
 
 
 def std(x1, /, *, axis=None, correction=0, keepdims=0):
-    return var(x1, axis=axis, correction=correction, keepdims=keepdims)
+    return var(x1, axis=axis, correction=correction, keepdims=keepdims)**0.5
 
 
 def diff(x, /, *, axis=-1, n=1, prepend=None, append=None):

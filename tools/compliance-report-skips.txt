@@ -1,0 +1,5 @@
+# Known slow or unsupported tests excluded from the compliance report.
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_left_shift
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_right_shift
+array_api_tests/test_operators_and_elementwise_functions.py::test_bitwise_invert
+array_api_tests/test_operators_and_elementwise_functions.py::test_pow

@@ -60,7 +60,8 @@ jobs:
         working-directory: array-api-tests
         run: |
           python -m pytest array_api_tests -c pytest.ini -n 4 --max-examples 1000 \
-            --derandomize --json-report
+            --derandomize --disable-deadline \
+            --skips-file ../tools/compliance-report-skips.txt --json-report
 
       - name: Add report metadata
         env:

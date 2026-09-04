@@ -56,7 +56,7 @@ jobs:
         continue-on-error: true
         env:
           ARRAY_API_TESTS_MODULE: ${{ env.ARRAY_LIBRARY }}
-          PYTHONWARNINGS: ignore::UserWarning::,ignore::DeprecationWarning::,ignore::RuntimeWarning::
+          PYTHONWARNINGS: 'ignore::UserWarning::,ignore::DeprecationWarning::,ignore::RuntimeWarning::'
         working-directory: array-api-tests
         run: |
           python -m pytest array_api_tests -c pytest.ini -n 4 --max-examples 1000 \

@@ -60,8 +60,7 @@ jobs:
         working-directory: array-api-tests
         run: |
           python -m pytest array_api_tests -c pytest.ini -n 4 --max-examples 1000 \
-            --derandomize \
-            --hypothesis-phases=explicit,reuse,generate,target --json-report
+            --derandomize --json-report
 
       - name: Add report metadata
         env:

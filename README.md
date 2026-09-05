@@ -1,3 +1,9 @@
+<a href="https://github.com/mdhaber/mparray">
+  <img src="https://github.com/mdhaber/mparray/tree/main/docs/logo.svg" alt="Logo. The MPArray logo is a nod to NumPy's logo and mpmath's identicon, but MArray is not affiliated with the NumPy or mpmath projects." width="110" height="110" align="left" />
+</a>
+
+[![PyPI Downloads](https://img.shields.io/pypi/dm/mparray.svg?label=Pypi%20downloads)](https://pypi.org/project/mparray/)
+
 MPArray is an [Array API Standard](https://data-apis.org/array-api/latest/) compatible array library that features arbitrary precision arithmetic.
 
 Install with `pip`:

@@ -1,6 +1,5 @@
 import sys as sys
 
-import numpy as np
 from mpmath import mp
 from scipy import special
 

@@ -128,6 +128,7 @@ class MPArray:
     def __repr__(self):
         s = repr(self._data)
         s = s.replace('array', 'MPArray')
+        s = s.replace('\n', '\n  ')
         return s.replace("dtype=object", f"dtype={self.dtype}")
 
     def __str__(self):

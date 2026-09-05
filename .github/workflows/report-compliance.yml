@@ -1,7 +1,6 @@
 name: Report Array API compliance
 
 on:
-  pull_request:
   push:
     branches:
       - main

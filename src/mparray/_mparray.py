@@ -86,7 +86,7 @@ class MPArray:
         return self._size
 
     def __array_namespace__(self, api_version=None):
-        if api_version is None or api_version == '2024.12':
+        if api_version is None or api_version == '2025.12':
             import mparray as xp
             return xp
         else:
@@ -298,10 +298,10 @@ for name in dtype_fun_names:
 dtype_names = ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16',
                'uint32', 'uint64', 'float32', 'float64', 'complex64', 'complex128',
                'isdtype']  # not really a dtype, but OK to treat it like one here
-inspection_fun_names = ['__array_namespace_info__']  # TODO: replace this?
-version_attribute_names = ['__array_api_version__']
-for name in (dtype_names + inspection_fun_names + version_attribute_names):
+inspection_fun_names = ['__array_namespace_info__']
+for name in (dtype_names + inspection_fun_names):
     mod[name] = getattr(np, name)
+__array_api_version__ = "2025.12"
 
 def astype(x, dtype, /, *, copy=True, device=None):
     if device is None and not copy and dtype == x.dtype:

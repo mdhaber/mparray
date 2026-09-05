@@ -1,0 +1,128 @@
+name: Report Array API compliance
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ARRAY_LIBRARY: mparray
+  ARRAY_API_TESTS_REF: 2026.02.26
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  array_api_tests:
+    name: Generate Array API compliance report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout mparray
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout Array API test suite
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: data-apis/array-api-tests
+          ref: ${{ env.ARRAY_API_TESTS_REF }}
+          submodules: recursive
+          path: array-api-tests
+          persist-credentials: false
+
+      - name: Install Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v6.2.0
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+          python -m pip install -r array-api-tests/requirements.txt
+          python -m pip install pytest-xdist
+
+      - name: Run Array API test suite
+        id: tests
+        continue-on-error: true
+        env:
+          ARRAY_API_TESTS_MODULE: ${{ env.ARRAY_LIBRARY }}
+          PYTHONWARNINGS: 'ignore::UserWarning::,ignore::DeprecationWarning::,ignore::RuntimeWarning::'
+        working-directory: array-api-tests
+        run: |
+          python -m pytest array_api_tests -c pytest.ini -n 4 --max-examples 1000 \
+            --derandomize --disable-deadline \
+            --skips-file ../tools/compliance-report-skips.txt --json-report
+
+      - name: Add report metadata
+        env:
+          ARRAY_API_TESTS_MODULE: ${{ env.ARRAY_LIBRARY }}
+        working-directory: array-api-tests
+        run: |
+          if [ ! -f .report.json ]; then
+            echo "::error::pytest did not produce .report.json"
+            exit 1
+          fi
+
+          library_version="$(python -c "import importlib.metadata; print(importlib.metadata.version('${ARRAY_LIBRARY}'))")"
+          platform="$(python -c 'import platform; print(platform.platform())')"
+          system="$(python -c 'import platform; print(platform.system())')"
+          release="$(python -c 'import platform; print(platform.release())')"
+          machine="$(python -c 'import platform; print(platform.machine())')"
+          python_version="$(python -c 'import platform; print(platform.python_version())')"
+          api_version="$(python -c "import ${ARRAY_API_TESTS_MODULE}; print(${ARRAY_API_TESTS_MODULE}.__array_api_version__)")"
+          test_suite="$(git rev-parse HEAD)"
+
+          jq \
+            --arg schema 'v1' \
+            --arg name "${ARRAY_LIBRARY}" \
+            --arg version "${library_version}" \
+            --arg api_version "${api_version}" \
+            --arg timestamp "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --arg platform "${platform}" \
+            --arg system "${system}" \
+            --arg release "${release}" \
+            --arg machine "${machine}" \
+            --arg execution_target 'cpu' \
+            --arg python_version "${python_version}" \
+            --arg test_suite "${test_suite}" \
+            '{
+              schema: $schema,
+              name: $name,
+              version: $version,
+              api_version: $api_version,
+              timestamp: $timestamp,
+              platform: {
+                description: $platform,
+                system: $system,
+                release: $release,
+                machine: $machine
+              },
+              execution_target: {
+                kind: $execution_target
+              },
+              python: $python_version,
+              test_suite: $test_suite,
+              data: {
+                duration: .duration,
+                exitcode: .exitcode,
+                summary: .summary,
+                tests: .tests
+              }
+            }' .report.json > "array_api_compliance-${ARRAY_LIBRARY}.json"
+
+      - name: Upload compliance report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: array_api_compliance-mparray.json
+          path: array-api-tests/array_api_compliance-mparray.json
+          if-no-files-found: error
+          retention-days: 45

@@ -65,6 +65,12 @@ class MPArray:
 
     __array_priority__ = 1  # make reflected operators work with NumPy
 
+    def __array__(self, dtype=None, copy=None):
+        message = ("MPArrays converted to NumPy arrays may suffer precision loss. "
+                   "To force conversion, manually convert the MPArray's `_data` "
+                   "attribute to an array of the desired dtype.")
+        raise NotImplementedError(message)
+
     @property
     def dtype(self):
         return self._dtype

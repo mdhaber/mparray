@@ -180,3 +180,5 @@ array_api_tests/test_special_cases.py::test_iop[__ipow__(x1_i < 0 and isfinite(x
 # This failure is because `arange` generates the array in float32 before converting to arbitrary precision
 # The zeroth element of the array doesn't match the first argument in `float32`
 array_api_tests/test_creation_functions.py::test_arange
+# https://github.com/data-apis/array-api-tests/issues/461
+array-api-tests\array_api_tests\test_linalg.py::test_matrix_transpose

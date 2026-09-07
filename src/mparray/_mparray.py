@@ -253,7 +253,7 @@ def asarray(obj, /, *, dtype=None, device=None, copy=None):
     return MPArray(obj, dtype=dtype, device=device, copy=copy)
 
 
-creation_functions = ['arange', 'empty', 'eye', 'from_dlpack',
+creation_functions = ['empty', 'eye', 'from_dlpack',
                       'linspace', 'ones', 'zeros']
 creation_functions_like = ['empty_like', 'ones_like', 'zeros_like']
 # `full` and `full_like` created separately
@@ -286,6 +286,17 @@ def full_like(x, /, fill_value, **kwargs):
     dtype=kwargs.get('dtype', None) or x.dtype
     device=kwargs.get('device', None) or x.device
     return full(x.shape, fill_value, dtype=dtype, device=device)
+
+
+def arange(start, /, stop=None, step=1, **kwargs):
+    start, stop = (0, start) if stop is None else (start, stop)
+    start, stop, step = _promote(start, stop, step)
+    dtype=kwargs.get('dtype', None) or start.dtype
+    device=kwargs.get('device', None) or start.device
+    if sign(stop - start) != sign(step):
+        return asarray([], dtype=dtype, device=device)
+    n = int(ceil((stop - start) / step))
+    return asarray(start + step * asarray(list(range(n))), dtype=dtype, device=device)
 
 
 ## Data Type Functions and Data Types ##

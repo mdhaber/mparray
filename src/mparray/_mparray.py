@@ -445,7 +445,8 @@ for name in elementwise_mp + elementwise_mp_float:
 def _mimum(x1, x2, /, op):
     res = op(x1, x2)
     i = isnan(x1) | isnan(x2)
-    res[i] = nan
+    if mod['any'](i):
+        res[i] = nan
     return res
 
 

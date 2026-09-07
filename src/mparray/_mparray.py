@@ -316,13 +316,18 @@ def result_type(*args):
     return np.result_type(*(_get_dtype(arg) for arg in args if arg is not None))
 
 
-dtype_fun_names = ['can_cast', 'finfo', 'iinfo']
+dtype_fun_names = ['can_cast', 'iinfo']
 for name in dtype_fun_names:
     # TODO: consider these more carefully
     def fun(*args, name=name, **kwargs):
         args = [_get_dtype(arg) for arg in args]
         return getattr(np, name)(*args, **kwargs)
     mod[name] = fun
+
+
+def finfo(x, /):
+    return _xinfo(x)
+
 
 dtype_names = ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16',
                'uint32', 'uint64', 'float32', 'float64', 'complex64', 'complex128',
@@ -744,14 +749,22 @@ for attribute in mod_keys:
 
 
 def _xinfo(x):
-    np = x._np
-    if np.isdtype(x.dtype, 'integral'):
-        return np.iinfo(x.dtype)
-    elif np.isdtype(x.dtype, 'bool'):
+    try:
+        dtype = asarray(x).dtype
+    except TypeError:
+        dtype = x
+    if isdtype(dtype, 'integral'):
+        return np.iinfo(dtype)
+    elif isdtype(dtype, 'bool'):
         binfo = dataclasses.make_dataclass("binfo", ['min', 'max'])
         return binfo(min=False, max=True)
     else:
-        return np.finfo(x.dtype)
+        res = np.finfo(dtype)
+        res.eps = 10**-mp.dps      # approximate
+        res.epsneg = -10**-mp.dps  # approximate
+        res.precision = mp.dps
+        res.resolution = res.eps
+        return res
 
 
 def _get_data(*args):

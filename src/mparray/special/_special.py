@@ -85,13 +85,13 @@ def fdtrc(dn, dd, x):
 
 
 @vectorize
-def xlogy(x, y):  # needs accuracy review
-    return x*mp.log(y)
+def xlogy(x, y):
+    return 0 if x == 0 else x*mp.log(y)
 
 
 @vectorize
-def xlog1py(x, y):  # needs accuracy review
-    return x*mp.log1p(y)
+def xlog1py(x, y):
+    return 0 if x == 0 else x*mp.log1p(y)
 
 
 @vectorize
@@ -147,10 +147,11 @@ def boxcox1p(x, lmbda):
         return _boxcox_scalar(mp.one + x, lmbda)
 
 
-def logsumexp(a, axis=None, b=None):
-    # As far as I know, logsumexp is to avoid overflow, not to improve precision.
-    # mpmath doesn't overflow, so naive implementation should be OK.
-    return xp.log(xp.sum(b*xp.exp(a), axis=axis))
+# TODO: add all features of SciPy version; until then, use SciPy implementation
+# def logsumexp(a, axis=None, b=None):
+#     # As far as I know, logsumexp is to avoid overflow, not to improve precision.
+#     # mpmath doesn't overflow, so naive implementation should be OK.
+#     return xp.log(xp.sum(b*xp.exp(a), axis=axis))
 
 
 @vectorize
@@ -198,6 +199,11 @@ def stdtr(df, t):
     x = df / (t**2 + df)
     p = betainc(df/2, mp.one/2, x)/2
     return xp.where(t < 0, p, mp.one - p)
+
+
+@vectorize
+def entr(x):
+    return -xlogy(x, x) if x >= 0 else -mp.inf
 
 
 # others to be added

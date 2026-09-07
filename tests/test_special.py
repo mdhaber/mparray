@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pytest
 from scipy import special as sps
@@ -22,7 +24,8 @@ arg01 = {'ndtri', 'logit', 'betainc'}
     ['expit', 1], ['boxcox', 2], ['boxcox1p', 2], ['ive', 2], ['i0e', 1],
     ['i1e', 1], ['kve', 2], ['k0e', 1], ['k1e', 1], ['factorial2', 1],
     ['logit', 1], ['ndtri', 1], ['chdtr', 2], ['chdtrc', 2],
-    ['betainc', 3], ['fdtr', 3], ['fdtrc', 3], ['stdtr', 2]
+    ['betainc', 3], ['fdtr', 3], ['fdtrc', 3], ['stdtr', 2],
+    ['entr', 1]
 ])
 def test_special_real(shape, f_name, nargs):
     f_mps = getattr(mps, f_name)
@@ -46,6 +49,10 @@ def test_special_real(shape, f_name, nargs):
     ('betaln', (1, 1+1e-10)),  # beta is nearly 1
     ('betaln', (1e10, 1e-20)),  # beta is very large
     ('cosm1', (1e-20,)),  # cos is very close to 1
+     # special cases in definitions
+    ('xlogy', (0., 0.)),  ('xlogy', (0., math.inf)),
+    ('xlog1py', (0., -1.)), ('xlog1py', (0., math.inf)),
+    ('entr', (0.,)), ('entr', (-1.,)),
 ])
 def test_special_edge(case):
     # test edge cases where accuracy is suspected to be challenging
@@ -56,14 +63,3 @@ def test_special_edge(case):
     res, ref = f_mps(*args), f_sps(*args)
     assert_allclose(res, ref)
 
-
-@pytest.mark.parametrize('axis', (0, 1))
-def test_logsumexp(axis):
-    # logsumexp is unusual in that it does a reduction of an array; test separately
-    rng = np.random.default_rng(8583692938552)
-    a = rng.random((3, 4))
-    b = rng.random((3, 4))
-    kwargs = dict(a=a, axis=axis, b=b)
-    res = mps.logsumexp(**kwargs)
-    ref = sps.logsumexp(**kwargs)
-    assert_allclose(res, ref)

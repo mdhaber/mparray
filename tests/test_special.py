@@ -50,8 +50,8 @@ def test_special_real(shape, f_name, nargs):
     ('betaln', (1e10, 1e-20)),  # beta is very large
     ('cosm1', (1e-20,)),  # cos is very close to 1
      # special cases in definitions
-    ('xlogy', (0., 0.)),  ('xlogy', (0., math.inf)),
-    ('xlog1py', (0., -1.)), ('xlog1py', (0., math.inf)),
+    ('xlogy', (0., 0.)),  ('xlogy', (0., math.inf)),  ('xlogy', (0., math.nan)),
+    ('xlog1py', (0., -1.)), ('xlog1py', (0., math.inf)), ('xlog1py', (0., math.nan)),
     ('entr', (0.,)), ('entr', (-1.,)),
 ])
 def test_special_edge(case):

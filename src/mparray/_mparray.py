@@ -303,6 +303,12 @@ def linspace(start, stop, /, num, *, endpoint=True, **kwargs):
     start, stop = _promote(start, stop, atleast=float)
     dtype=kwargs.get('dtype', None) or start.dtype
     device=kwargs.get('device', None) or start.device
+    if num == 1:
+        return astype(reshape(start, (1,)), dtype)
+    elif num == 0:
+        return empty((0,), dtype=dtype, device=device)
+    elif num < 0:
+        raise ValueError('Argument `num` must be non-negative.')
     N = num if endpoint else num + 1
     step = (stop - start) / (N - 1)
     res = asarray(start + step * asarray(list(range(num))), dtype=dtype, device=device)
@@ -800,6 +806,7 @@ def _promote(*args, atleast=bool):
     return tuple((astype(arg, dtype) if arg is not None else arg) for arg in args)
 
 
+# TODO: fix nested _vectorize issue
 def _vectorize(f):
 
     @functools.wraps(f)

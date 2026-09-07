@@ -4,11 +4,11 @@ from mpmath import mp
 from scipy import special
 
 import mparray as xp
-from mparray._mparray import _vectorize as vectorize
+from mparray._mparray import _vectorize as vectorize, _promote as promote
 
 # add imported names to `_imports` to avoid altering their documentation and exposing
 # as public members of `mparray.special`.
-_imports = {'sys', 'np', 'mp', 'xp', 'vectorize', 'special'}
+_imports = {'sys', 'np', 'mp', 'xp', 'vectorize', 'special', 'promote'}
 
 expm1 = vectorize(mp.expm1)
 log1p = vectorize(mp.log1p)
@@ -86,12 +86,12 @@ def fdtrc(dn, dd, x):
 
 @vectorize
 def xlogy(x, y):
-    return 0 if x == 0 else x*mp.log(y)
+    return 0 if (x == 0 and not xp.isnan(y)) else x*mp.log(y)
 
 
 @vectorize
 def xlog1py(x, y):
-    return 0 if x == 0 else x*mp.log1p(y)
+    return 0 if (x == 0 and not xp.isnan(y)) else x*mp.log1p(y)
 
 
 @vectorize
@@ -154,56 +154,47 @@ def boxcox1p(x, lmbda):
 #     return xp.log(xp.sum(b*xp.exp(a), axis=axis))
 
 
-@vectorize
 def ive(v, z):
     return iv(v, z) * xp.exp(-xp.abs(xp.real(z)))
 
 
-@vectorize
 def i0e(x):
     return ive(0, x)
 
 
-@vectorize
 def i1e(x):
     return ive(1, x)
 
 
-@vectorize
 def kve(v, z):
     return kv(v, z) * xp.exp(z)
 
 
-@vectorize
 def k0e(x):
     return kve(0, x)
 
 
-@vectorize
 def k1e(x):
     return kve(1, x)
 
 
-@vectorize
 def chdtr(v, x):
     return gammainc(v / 2, x / 2)
 
 
-@vectorize
 def chdtrc(v, x):
     return gammaincc(v / 2, x / 2)
 
 
-@vectorize
 def stdtr(df, t):
+    df, t = promote(df, t, atleast=float)
     x = df / (t**2 + df)
     p = betainc(df/2, mp.one/2, x)/2
     return xp.where(t < 0, p, mp.one - p)
 
 
-@vectorize
 def entr(x):
-    return -xlogy(x, x) if x >= 0 else -mp.inf
+    return xp.where(x >= 0, -xlogy(x, x), -mp.inf)
 
 
 # others to be added

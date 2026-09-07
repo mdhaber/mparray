@@ -253,8 +253,7 @@ def asarray(obj, /, *, dtype=None, device=None, copy=None):
     return MPArray(obj, dtype=dtype, device=device, copy=copy)
 
 
-creation_functions = ['empty', 'eye', 'from_dlpack',
-                      'linspace', 'ones', 'zeros']
+creation_functions = ['empty', 'eye', 'from_dlpack', 'ones', 'zeros']
 creation_functions_like = ['empty_like', 'ones_like', 'zeros_like']
 # `full` and `full_like` created separately
 #  'tril', 'triu', 'meshgrid' handled with array manipulation functions
@@ -297,6 +296,19 @@ def arange(start, /, stop=None, step=1, **kwargs):
         return asarray([], dtype=dtype, device=device)
     n = int(ceil((stop - start) / step))
     return asarray(start + step * asarray(list(range(n))), dtype=dtype, device=device)
+
+
+def linspace(start, stop, /, num, *, endpoint=True, **kwargs):
+    num = int(num)
+    start, stop = _promote(start, stop, atleast=float)
+    dtype=kwargs.get('dtype', None) or start.dtype
+    device=kwargs.get('device', None) or start.device
+    N = num if endpoint else num + 1
+    step = (stop - start) / (N - 1)
+    res = asarray(start + step * asarray(list(range(num))), dtype=dtype, device=device)
+    if endpoint and res.size:
+        res[-1] = stop
+    return res
 
 
 ## Data Type Functions and Data Types ##
@@ -342,8 +354,7 @@ for name in elementwise_numpy:
 elementwise_no_dtype = ['abs', 'bitwise_and', 'bitwise_left_shift', 'bitwise_invert',
                         'bitwise_or', 'bitwise_right_shift', 'bitwise_xor', 'negative',
                         'positive', 'square']
-elementwise_promote_numpy = ['add', 'remainder', 'multiply',
-                             'maximum', 'minimum', 'subtract']
+elementwise_promote_numpy = ['add', 'multiply', 'maximum', 'minimum', 'subtract']
 for name in elementwise_no_dtype + elementwise_promote_numpy:
     def fun(*args, name=name, **kwargs):
         args = _promote(*args)
@@ -360,9 +371,9 @@ def _dividelike_special_case(x1, x2, *, op):
     return op(np.astype(x1._data, x1.dtype), np.astype(x2._data, x2.dtype))
 
 
-def _dividelike(x1, x2, *, op):
+def _dividelike(x1, x2, *, op, atleast=bool):
     # mpmath division by zero raises,
-    x1, x2 = _promote(x1, x2)
+    x1, x2 = _promote(x1, x2, atleast=atleast)
     x1, x2 = broadcast_arrays(x1, x2)
     res = empty(x1.shape, dtype=x1.dtype)
     i = (x2 != 0)._data & isfinite(x2)._data
@@ -372,7 +383,7 @@ def _dividelike(x1, x2, *, op):
 
 
 def divide(x1, x2, /):
-    return _dividelike(x1, x2, op=lambda x1, x2: x1 / x2)
+    return _dividelike(x1, x2, op=lambda x1, x2: x1 / x2, atleast=float)
 
 
 def floor_divide(x1, x2, /):

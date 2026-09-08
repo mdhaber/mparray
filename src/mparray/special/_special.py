@@ -4,7 +4,8 @@ from mpmath import mp
 from scipy import special
 
 import mparray as xp
-from mparray._mparray import _vectorize as vectorize, _promote as promote
+from mparray._mparray import _promote as promote
+from mparray._mparray import _vectorize as vectorize
 
 # add imported names to `_imports` to avoid altering their documentation and exposing
 # as public members of `mparray.special`.

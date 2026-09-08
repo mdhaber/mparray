@@ -398,7 +398,11 @@ def divide(x1, x2, /):
 
 
 def floor_divide(x1, x2, /):
-    return _dividelike(x1, x2, op=lambda x1, x2: x1 // x2)
+    res = _dividelike(x1, x2, op=lambda x1, x2: x1 // x2)
+    x1, x2 = broadcast_arrays(x1, x2)
+    i = isinf(x1)
+    res[i] = astype(divide(x1[i], x2[i]), res.dtype)
+    return res
 
 
 def remainder(x1, x2, /):

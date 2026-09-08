@@ -65,6 +65,11 @@ def log_ndtr(x):
 
 
 @vectorize
+def beta(x, y):
+    return mp.beta(x, y)
+
+
+@vectorize
 def betaln(x, y):
     return mp.log(mp.beta(x, y))
 
@@ -195,6 +200,60 @@ def stdtr(df, t):
 
 def entr(x):
     return xp.where(x >= 0, -xlogy(x, x), -mp.inf)
+
+
+def log_gammainc(a, x):  # TODO: add tests when public in SciPy 2.0
+    exp_res = gammainc(a, x)
+    return xp.where(exp_res < 0.5, xp.log(exp_res), xp.log1p(-gammaincc(a, x)))
+
+
+def log_gammaincc(a, x):  # TODO: add tests when public in SciPy 2.0
+    exp_res = gammaincc(a, x)
+    return xp.where(exp_res < 0.5, xp.log(exp_res), xp.log1p(-gammainc(a, x)))
+
+
+@vectorize
+def gammaincinv(a, y):
+    if not ((a >= 0) and (y >= 0 and y <= 1)):
+        return mp.nan
+
+    if y == 0:
+        return 0
+
+    if y == 1:
+        return mp.inf
+
+    if a == mp.inf or a == 0:
+        return mp.nan
+
+    def f(x):
+        return mp.gammainc(a, a=0, b=x, regularized=True) - y
+    b = 1
+    while f(b) < 0:
+        b = b*2
+    return mp.findroot(f, (0, b), solver='illinois', maxsteps=1000)
+
+
+@vectorize
+def gammainccinv(a, y):
+    if not ((a >= 0) and (y >= 0 and y <= 1)):
+        return mp.nan
+
+    if y == 0:
+        return mp.inf
+
+    if y == 1:
+        return 0
+
+    if a == mp.inf or a == 0:
+        return mp.nan
+
+    def f(x):
+        return mp.gammainc(a, a=x, b=mp.inf, regularized=True) - y
+    left = 1
+    while f(left) > 0:
+        left = left*2
+    return mp.findroot(f, (0, left), solver='illinois', maxsteps=1000)
 
 
 # others to be added

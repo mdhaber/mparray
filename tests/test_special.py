@@ -25,7 +25,7 @@ arg01 = {'ndtri', 'logit', 'betainc'}
     ['i1e', 1], ['kve', 2], ['k0e', 1], ['k1e', 1], ['factorial2', 1],
     ['logit', 1], ['ndtri', 1], ['chdtr', 2], ['chdtrc', 2],
     ['betainc', 3], ['fdtr', 3], ['fdtrc', 3], ['stdtr', 2],
-    ['entr', 1]
+    ['entr', 1], ['beta', 2]
 ])
 def test_special_real(shape, f_name, nargs):
     f_mps = getattr(mps, f_name)

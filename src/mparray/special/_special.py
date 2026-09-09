@@ -21,6 +21,7 @@ gamma = vectorize(mp.gamma)
 gammaln = vectorize(mp.loggamma)
 erf = vectorize(mp.erf)
 erfc = vectorize(mp.erfc)
+erfinv = vectorize(mp.erfinv)
 zeta = vectorize(mp.zeta)
 poch = vectorize(mp.rf)
 binom = vectorize(mp.binomial)
@@ -30,6 +31,7 @@ hyp1f1 = vectorize(mp.hyp1f1)
 hyp2f1 = vectorize(mp.hyp2f1)
 iv = vectorize(mp.besseli)
 kv = vectorize(mp.besselk)
+lambertw = vectorize(mp.lambertw)
 
 
 @vectorize
@@ -66,6 +68,26 @@ def log_ndtr(x):
 
 
 @vectorize
+def ndtri_exp(p):
+    if not p <= 0:
+        return mp.nan
+
+    if p == -mp.inf:
+        return -mp.inf
+    elif p == 0:
+        return mp.inf
+
+    def f(t):
+        res = (mp.log(mp.ncdf(t)) if t <= 0 else mp.log1p(-mp.ncdf(-t))) - p
+        return res / abs(p) if abs(p) < 1 else res
+
+    b = -1
+    while f(b) > 0:
+        b = b*2
+    return mp.findroot(f, (b, 0), solver='illinois', maxsteps=1000)
+
+
+@vectorize
 def beta(x, y):
     return mp.beta(x, y)
 
@@ -88,6 +110,33 @@ def fdtr(dn, dd, x):
 @vectorize
 def fdtrc(dn, dd, x):
     return mp.betainc(dn/2, dd/2, x*dn/(dd + x*dn), 1, regularized=True)
+
+
+@vectorize
+def fdtri(dn, dd, p):
+    if not ((dn >= 0) and (dd >= 0) and (p >= 0 and p <= 1)):
+        return mp.nan
+
+    if p == 0:
+        return -mp.inf
+    elif p == 1:
+        return mp.inf
+
+    def f(x):
+        return mp.betainc(dn/2, dd/2, 0, x*dn/(dd + x*dn), regularized=True) - p
+
+    b = 1
+    while f(b) < 0:
+        b = b*2
+    return mp.findroot(f, (0, b), solver='illinois', maxsteps=1000)
+
+
+def pdtr(k, m):
+    return gammaincc(xp.floor(k+1), m)
+
+
+def pdtrc(k, m):
+    return gammainc(xp.floor(k+1), m)
 
 
 @vectorize
@@ -120,9 +169,13 @@ def logit(x):  # needs accuracy review
     return res
 
 
-@vectorize
 def expit(x):  # needs accuracy review
-    return mp.exp(x - mp.log1p(mp.exp(x)))
+    return xp.exp(log_expit(x))
+
+
+@vectorize
+def log_expit(x):
+    return x - mp.log1p(mp.exp(x)) if x <= 0 else -mp.log1p(1/mp.exp(x))
 
 
 def _boxcox_scalar(x, lmbda):
@@ -192,6 +245,10 @@ def chdtrc(v, x):
     return gammaincc(v / 2, x / 2)
 
 
+def chdtri(v, p):
+    return 2*gammainccinv(v / 2, p)
+
+
 def stdtr(df, t):
     df, t = promote(df, t, atleast=float)
     x = df / (t**2 + df)
@@ -199,8 +256,34 @@ def stdtr(df, t):
     return xp.where(t < 0, p, mp.one - p)
 
 
+@vectorize
+def stdtrit(df, p):
+    if not ((df >= 0) and (p >= 0 and p <= 1)):
+        return mp.nan
+
+    if p == 0:
+        return -mp.inf
+    elif p == 1:
+        return mp.inf
+
+    def f(t):
+        x = df / (t**2 + df)
+        cdf = mp.betainc(df/2, mp.one/2, 0, x, regularized=True)/2
+        res = (cdf if t < 0 else mp.one - cdf) - p
+        return res
+
+    b = 1
+    while not (f(-b) < 0 < f(b)):
+        b = b*2
+    return mp.findroot(f, (-b, b), solver='illinois', maxsteps=1000)
+
+
 def entr(x):
     return xp.where(x >= 0, -xlogy(x, x), -mp.inf)
+
+
+def rel_entr(x, y):
+    return xp.where((x >= 0) & (y >= 0), xlogy(x, x) - xlogy(x, y), mp.inf)
 
 
 def log_gammainc(a, x):  # TODO: add tests when public in SciPy 2.0
@@ -258,20 +341,13 @@ def gammainccinv(a, y):
 
 
 # others to be added
-# gammaincinv
-# gammainccinv
-# chdtri
 # chndtr
 # chndtrix
-# stdtrit
-# ndtri_exp
 # tklmbda
 # inv_boxcox
 # inv_boxcox1p
 # kolmogorov, smirnov
 # erfcinv
-# erfinv
-# lambertw
 
 
 # generate rough documentation

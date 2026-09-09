@@ -818,7 +818,8 @@ def _vectorize(f):
         args = list(_promote(*args, atleast=float))
         data = (_get_data(arg) for arg in args)
         out = np.vectorize(f, otypes=[object])(*data, **kwargs)
-        # TODO: preserve complex output dtype for funcs like acos
-        return asarray(out, dtype=args[0].dtype)
+        dtype = (result_type(args[0].dtype, _get_dtype(reshape(out, (-1,))[0]))
+                 if out.size else args[0].dtype)
+        return asarray(out, dtype=dtype)
 
     return wrapped

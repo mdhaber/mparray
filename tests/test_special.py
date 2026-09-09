@@ -25,7 +25,8 @@ arg01 = {'ndtri', 'logit', 'betainc'}
     ['i1e', 1], ['kve', 2], ['k0e', 1], ['k1e', 1], ['factorial2', 1],
     ['logit', 1], ['ndtri', 1], ['chdtr', 2], ['chdtrc', 2],
     ['betainc', 3], ['fdtr', 3], ['fdtrc', 3], ['stdtr', 2],
-    ['entr', 1], ['beta', 2]
+    ['entr', 1], ['beta', 2], ['rel_entr', 2], ['pdtr', 2], ['pdtrc', 2],
+    ['log_expit', 1], ['lambertw', 2],
 ])
 def test_special_real(shape, f_name, nargs):
     f_mps = getattr(mps, f_name)
@@ -53,6 +54,7 @@ def test_special_real(shape, f_name, nargs):
     ('xlogy', (0., 0.)),  ('xlogy', (0., math.inf)),  ('xlogy', (0., math.nan)),
     ('xlog1py', (0., -1.)), ('xlog1py', (0., math.inf)), ('xlog1py', (0., math.nan)),
     ('entr', (0.,)), ('entr', (-1.,)),
+    ('rel_entr', (0., 0.)), ('rel_entr', (-1., 1.)), ('rel_entr', (1., -1.)),
 ])
 def test_special_edge(case):
     # test edge cases where accuracy is suspected to be challenging
@@ -62,4 +64,3 @@ def test_special_edge(case):
 
     res, ref = f_mps(*args), f_sps(*args)
     assert_allclose(res, ref)
-

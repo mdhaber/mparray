@@ -648,7 +648,25 @@ for name in sort_names:
     def fun(x, /, *, name=name, axis=-1, descending=False, stable=True):
         x = asarray(x)
         x = -x if descending else x
+
+        # NumPy object array `sort` doesn't work with NaNs as expected. Fix it by
+        # temporarily replacing NaNs with a value greater than the largest finite value.
+        is_floating = isdtype(x.dtype, ('real floating', 'complex floating'))
+        if is_floating and x.size:
+            nans = isnan(x)
+            infs = (x == +inf)
+            x[nans | infs] = 0
+            inf_sentinel = max(x) + 1
+            nan_sentinel = inf_sentinel + 1
+            x[infs] = inf_sentinel
+            x[nans] = nan_sentinel
+
         res = getattr(np, name)(x._data, axis=axis, stable=stable)
+
+        if is_floating and x.size and name == 'sort':
+            res[res == inf_sentinel._data] = inf
+            res[res == nan_sentinel._data] = nan
+
         res = -res if (descending and name == 'sort') else res
         return asarray(res, dtype=x.dtype if name == 'sort' else None)
     mod[name] = fun

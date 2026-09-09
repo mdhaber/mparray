@@ -9,7 +9,8 @@ from mparray._mparray import _vectorize as vectorize
 
 # add imported names to `_imports` to avoid altering their documentation and exposing
 # as public members of `mparray.special`.
-_imports = {'sys', 'np', 'mp', 'xp', 'vectorize', 'special', 'promote'}
+_imports = {'sys', 'np', 'mp', 'xp', 'vectorize',
+            'special', 'promote', 'fresnelc', 'fresnels'}
 
 expm1 = vectorize(mp.expm1)
 log1p = vectorize(mp.log1p)
@@ -32,6 +33,32 @@ hyp2f1 = vectorize(mp.hyp2f1)
 iv = vectorize(mp.besseli)
 kv = vectorize(mp.besselk)
 lambertw = vectorize(mp.lambertw)
+fresnels = vectorize(mp.fresnels)
+fresnelc = vectorize(mp.fresnelc)
+
+
+@vectorize
+def erfcx(x):
+    return mp.exp(x**2) * mp.erfc(x)
+
+
+@vectorize
+def erfcinv(p):
+    if not (p >= 0 and p <= 2):
+        return mp.nan
+
+    if p == 0:
+        return -mp.inf
+    elif p == 2:
+        return mp.inf
+
+    def f(t):
+        return (mp.erfc(t) - p)/abs(p)
+
+    b = 1
+    while not (f(-b) > 0 > f(b)):
+        b = b*2
+    return mp.findroot(f, (-b, b), solver='illinois', maxsteps=1000)
 
 
 @vectorize
@@ -185,6 +212,8 @@ def _boxcox_scalar(x, lmbda):
     """
     if x < 0:
         return mp.nan
+    if x == 0:
+        return lmbda*mp.inf
     if lmbda != 0:
         return mp.powm1(x, lmbda) / lmbda
     else:
@@ -204,6 +233,40 @@ def boxcox1p(x, lmbda):
     extra_dps = max(0, int(mp.ceil(-mp.log10(abs(x)))))
     with mp.workdps(mp.dps + extra_dps):
         return _boxcox_scalar(mp.one + x, lmbda)
+
+
+# I forgot this could be solved analytically
+# @vectorize
+# def inv_boxcox(y, lmbda):
+#     if xp.isnan(lmbda):
+#         return mp.nan
+
+#     if lmbda > 0:
+#         if y < -1/lmbda:
+#             return mp.nan
+#         if y == -1/lmbda:
+#             return 0
+#         if y == mp.inf:
+#             return mp.inf
+
+#     if lmbda < 0:
+#         if y > -1/lmbda:
+#             return mp.nan
+#         if y == -1/lmbda:
+#             return mp.inf
+#         if y == -mp.inf:
+#             return 0
+
+#     def f(x):
+#         return _boxcox_scalar(x, lmbda) - y
+
+#     b = 1
+#     while f(b) <= 0:
+#         print(b, f(b))
+#         b = b*2
+#     # illinois returns NaN when f(0) = -inf
+#     # bisect fails when f(b) == 0
+#     return mp.findroot(f, (0, b), solver='bisect', maxsteps=1000)
 
 
 # TODO: add all features of SciPy version; until then, use SciPy implementation
@@ -340,6 +403,11 @@ def gammainccinv(a, y):
     return mp.findroot(f, (0, left), solver='illinois', maxsteps=1000)
 
 
+
+def fresnel(x):
+    return fresnels(x), fresnelc(x)
+
+
 # others to be added
 # chndtr
 # chndtrix
@@ -347,7 +415,6 @@ def gammainccinv(a, y):
 # inv_boxcox
 # inv_boxcox1p
 # kolmogorov, smirnov
-# erfcinv
 
 
 # generate rough documentation

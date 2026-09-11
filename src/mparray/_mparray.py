@@ -147,8 +147,8 @@ class MPArray:
 
     def __imatmul__(self, other):
         res = matmul(self, other)
-        self._data[...] = res.data[...]
-        return
+        self._data[...] = res._data[...]
+        return self
 
     def __rmatmul__(self, other):
         other = asarray(other)

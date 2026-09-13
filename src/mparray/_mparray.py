@@ -836,7 +836,7 @@ def _vectorize(f):
         args = list(_promote(*args, atleast=float))
         data = (_get_data(arg) for arg in args)
         out = np.vectorize(f, otypes=[object])(*data, **kwargs)
-        dtype = (result_type(args[0].dtype, _get_dtype(reshape(out, (-1,))[0]))
+        dtype = (result_type(args[0].dtype, _get_dtype(np.ravel(out)[0]))
                  if out.size else args[0].dtype)
         return asarray(out, dtype=dtype)
 

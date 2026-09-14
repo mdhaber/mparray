@@ -1,4 +1,6 @@
+import inspect
 import sys as sys
+from collections import namedtuple
 
 import numpy as np
 from mpmath import mp
@@ -9,7 +11,7 @@ from mparray._mparray import _get_data, _get_dtype, _promote
 
 # add imported names to `_imports` to avoid altering their documentation and exposing
 # as public members of `mparray.special`.
-_imports = {'sys', 'np', 'mp', 'xp', 'name', 'fun', 'promote', 'mod'}
+_imports = {'inspect', 'sys', 'np', 'mp', 'xp', 'name', 'fun', 'promote', 'mod'}
 
 fun_names_args = [
     ('cholesky', [('x', 2)]),
@@ -32,7 +34,7 @@ fun_names_args = [
     # ('slogdet', [('x', 2)]),  # defined via det
     ('solve', [('x1', 2), ('x2', 2)]),
     ('svd', [('x', 2)]),
-    ('svdvals', [('x', 2)]),  # defined via svd
+    # ('svdvals', [('x', 2)]),  # currently defined via svd
     # tensordot is alias
     # ('trace', [('x', 2)]),  # defined via diag
     # vecdot is alias
@@ -71,9 +73,8 @@ def _eig(A):
     out1, out2 = mp.eig(mp.matrix(data))
     out1 = np.asarray(out1, dtype=object)
     out2 = np.asarray(out2.tolist(), dtype=object)
-    dtype1 = xp.result_type(A.dtype, _get_dtype(out1.ravel()[0]))
-    dtype2 = xp.result_type(A.dtype, _get_dtype(out2.ravel()[0]))
-    return xp.asarray(out1, dtype=dtype1), xp.asarray(out2, dtype=dtype2)
+    dtype = xp.result_type(A.dtype, complex)
+    return xp.asarray(out1, dtype=dtype), xp.asarray(out2, dtype=dtype)
 
 
 def _eigh(A):
@@ -102,13 +103,22 @@ def _matrix_norm(A, /, *, keepdims=False, ord='fro'):
     data = _get_data(A)
     if ord in {xp.inf, 1, 'fro'}:
         out = np.asarray(mp.mnorm(mp.matrix(data), ord), dtype=object)
-    elif ord in {2, 'nuc'}:
-        out = np.asarray(mp.eig(mp.matrix(data))[0], dtype=object)
-        out = np.asarray(np.sum(out) if ord == 'nuc' else np.max(out), dtype=object)
+    elif ord in {-2, 2, 'nuc'}:
+        S = np.asarray(mp.svd(mp.matrix(data), compute_uv=False), dtype=object)
+        if ord == 'nuc':
+            out = np.sum(S)
+        elif ord == 2:
+            out = np.max(S)
+        else:
+            out = np.min(S)
+        out = np.asarray(out, dtype=object)
+    elif ord in {-1, -xp.inf}:
+        axis = 0 if ord == -1 else 1
+        out = np.asarray(np.min(np.sum(abs(data), axis=axis)), dtype=object)
     else:
         raise ValueError("Invalid norm order.")
     dtype = xp.result_type(A.dtype, _get_dtype(out.ravel()[0]))
-    res = xp.asarray(out, dtype=dtype)
+    res = xp.real(xp.asarray(out, dtype=dtype))
     return res[..., xp.newaxis, xp.newaxis] if keepdims else res
 
 
@@ -154,13 +164,6 @@ def _qr(A, /, *, mode):
             xp.asarray(out1, dtype=A.dtype))
 
 
-def slogdet(x):
-    x, = _promote(x, atleast=float)
-    det = mod['det'](x)
-    sgn = xp.where(det == 0, 0, det / abs(det))
-    return xp.astype(abs(xp.log(det)), x.dtype), xp.real(sgn)
-
-
 def _solve(A, b, /):
     data0 = _get_data(A)
     data1 = _get_data(b)
@@ -180,11 +183,11 @@ def _svd(A, /, *, full_matrices=True):
             xp.asarray(out2, dtype=A.dtype))
 
 
-def _svdvals(A):
-    data = _get_data(A)
-    out = mp.svd(mp.matrix(data), compute_uv=False)
-    out = np.asarray(out.tolist(), dtype=object)[:, 0]
-    return xp.real(xp.asarray(out, dtype=A.dtype))
+# def _svdvals(A):
+#     data = _get_data(A)
+#     out = mp.svd(mp.matrix(data), compute_uv=False)
+#     out = np.asarray(out.tolist(), dtype=object)[:, 0]
+#     return xp.real(xp.asarray(out, dtype=A.dtype))
 
 
 def trace(A, /, *, offset=0, dtype=None):
@@ -199,7 +202,7 @@ for name, arg_data in fun_names_args:
     def fun(*args, name=name, arg_data=arg_data, **kwargs):
         if name == 'matrix_power':
             args = _promote(args[0], atleast=float)[0], args[1]
-        elif name in {'trace', 'offset', 'outer', 'cross'}:
+        elif name in {'trace', 'offset', 'outer', 'cross', 'diagonal'}:
             pass
         else:
             args = _promote(*args, atleast=float)
@@ -209,33 +212,106 @@ for name, arg_data in fun_names_args:
 
 
 def cholesky(x, /, *, upper=False, cholesky=mod['cholesky']):
+    if not x.size:  # temporary; use zero-size support in SciPy 2.0
+        return x
     res = cholesky(x)
     return res.mT if upper else res
 
 
 def cross(x1, x2, /, *, axis=-1, cross=mod['cross']):
     x1, x2 = xp.moveaxis(x1, axis, -1), xp.moveaxis(x2, axis, -1)
-    return cross(x1, x2)
+    if not x1.size or not x2.size:  # temporary; use zero-size support in SciPy 2.0
+        res = xp.broadcast_arrays(x1, x2)[0]
+    else:
+        res = cross(x1, x2)
+    return xp.moveaxis(res, -1, axis)
+
+
+def det(x, /, *, det=mod['det']):
+    if not x.size:  # temporary; use zero-size support in SciPy 2.0
+        return xp.zeros(x.shape[:-2], dtype=x.dtype)
+    return det(x)
+
+
+def diagonal(x, /, *, offset=0, diagonal=mod['diagonal']):
+    m, n = x.shape[-2:]
+    if not x.size or abs(offset) >= min(m, n):
+        k = max(min(m, n) - abs(offset), 0)
+        return xp.zeros(x.shape[:-2]+(k,), dtype=x.dtype)
+    return diagonal(x, offset=offset)
+
+
+def eig(x, /, *, eig=mod['eig']):
+    if not x.size:
+        dtype, = _promote(x, atleast=complex)
+        eigenvalues = xp.empty(x.shape[:-1], dtype=dtype)
+        eigenvectors = xp.empty(x.shape, dtype=dtype)
+    else:
+        eigenvalues, eigenvectors = eig(x)
+    return namedtuple("eig_result", ['eigenvalues', 'eigenvectors'])(
+        eigenvalues=eigenvalues, eigenvectors=eigenvectors)
+
+
+def eigh(x, /, *, eigh=mod['eigh']):
+    if not x.size:
+        dtype, = _promote(x, atleast=float)
+        eigenvalues = xp.empty(x.shape[:-1], dtype=dtype)
+        eigenvectors = xp.empty(x.shape, dtype=dtype)
+    else:
+        eigenvalues, eigenvectors = eigh(x)
+    return namedtuple("eigh_result", ['eigenvalues', 'eigenvectors'])(
+        eigenvalues=eigenvalues, eigenvectors=eigenvectors)
+
+
+def matrix_power(x, n, /, *, matrix_power=mod['matrix_power']):
+    x, = _promote(x, atleast=float)
+    if not x.size:  # temporary; use zero-size support in SciPy 2.0
+        return x
+    return matrix_power(x, n)
+
+
+def matrix_norm(x, /, *, keepdims=False, ord='fro', matrix_norm=mod['matrix_norm']):
+    if not x.size:  # temporary; use zero-size support in SciPy 2.0
+        res = xp.real(xp.zeros(x.shape[:-2], dtype=x.dtype))
+        return res[..., xp.newaxis, xp.newaxis] if keepdims else res
+    return matrix_norm(x, keepdims=keepdims, ord=ord)
 
 
 def qr(x, /, *, mode='reduced', qr=mod['qr']):
-    x = _promote(x, atleast=float)
-    modes = {'reduced': 'skinny', 'complete': 'full'}
-    if mode not in modes:
-        raise ValueError(f'Unrecognized mode `{mode}`.')
+    x, = _promote(x, atleast=float)
+    if not x.size:
+        batch_shape = x.shape[:-2]
+        m, n = x.shape[-2:]
+        k = min(m, n)
+        q_core, r_core = ((m, k), (k, n)) if mode == 'reduced' else ((m, m), (m, n))
+        Q = xp.empty(batch_shape + q_core, dtype=x.dtype)
+        R = xp.empty(batch_shape + r_core, dtype=x.dtype)
+    else:
+        modes = {'reduced': 'skinny', 'complete': 'full'}
+        if mode not in modes:
+            raise ValueError(f'Unrecognized mode `{mode}`.')
 
-    m, n = x.shape[-2:]
-    if m < n:
-        x_ = xp.zeros(x.shape[:-2] + (n, n))
-        x_[..., :m, :] = x
-        x = x_
+        m, n = x.shape[-2:]
+        if m < n:
+            x_ = xp.zeros(x.shape[:-2] + (n, n), dtype=x.dtype)
+            x_[..., :m, :] = x
+            x = x_
 
-    res = qr(x, mode=modes[mode])
+        Q, R = qr(x, mode=modes[mode])
 
-    if m < n:
-        res = res[0][..., :m, :m], res[1][..., :m, :]
+        if m < n:
+            Q, R = Q[..., :m, :m], R[..., :m, :]
 
-    return res
+    return namedtuple("qr_result", ['Q', 'R'])(Q=Q, R=R)
+
+
+def slogdet(x, /):
+    x, = _promote(x, atleast=float)
+    det = mod['det'](x)
+    sign = xp.where(det == 0, 0, det / abs(det))
+    logabsdet = xp.real(xp.astype(xp.log(abs(det)), x.dtype))
+    return namedtuple("slogdet_result", ['sign', 'logabsdet'])(
+        sign=sign, logabsdet=logabsdet)
 
 
 def solve(x1, x2, /, *, solve=mod['solve']):
@@ -258,6 +334,28 @@ def solve(x1, x2, /, *, solve=mod['solve']):
     return res
 
 
+def svd(x, /, *, full_matrices=True, svd=mod['svd']):
+    if not x.size:
+        x, = _promote(x, atleast=float)
+        batch_shape = x.shape[:-2]
+        m, n = x.shape[-2:]
+        k = min(m, n)
+        U_core = (m, m)
+        Vh_core = (n, n)
+        if not full_matrices:
+            U_core, Vh_core = ((m, m), (k, n)) if m < n else ((m, k), (n, n))
+        U = xp.empty(batch_shape + U_core, dtype=x.dtype)
+        Vh = xp.empty(batch_shape + Vh_core, dtype=x.dtype)
+        S = xp.real(xp.empty(batch_shape + (k,), dtype=x.dtype))
+    else:
+        U, S, Vh = svd(x, full_matrices=full_matrices)
+    return namedtuple("svd_result", ['U', 'S', 'Vh'])(U=U, S=S, Vh=Vh)
+
+
+def svdvals(x, /):
+    return svd(x)[1]
+
+
 def matrix_transpose(x, /):
     return xp.matrix_transpose(x)
 
@@ -266,7 +364,7 @@ def matmul(x1, x2, /):
     return xp.matmul(x1, x2)
 
 
-def tensordot(x1, x2, /, *, axes=-1):
+def tensordot(x1, x2, /, *, axes=2):
     return xp.tensordot(x1, x2, axes=axes)
 
 
@@ -280,9 +378,25 @@ _preface = ["The following is the documentation for the corresponding "
             "MPArray behavior is the same except that the calculation is "
             "carried out in the appropriate precision.\n\n"]
 _preface = "\n".join(_preface)
-function_names = list(sys.modules[__name__].__dict__.keys())
-for key in function_names:
-    if key in _imports or '_' in key:
+function_names = list(mod.keys())
+for function_name in function_names:
+    if (function_name in _imports
+            or function_name[0] == '_'
+            or not hasattr(np.linalg, function_name)):
         continue
-    linalg_doc = getattr(np.linalg, key).__doc__
-    sys.modules[__name__].__dict__[key].__doc__ = _preface + linalg_doc
+
+    linalg_doc = getattr(np.linalg, function_name).__doc__
+    mod[function_name].__doc__ = _preface + linalg_doc
+
+    np_attr = getattr(np.linalg, function_name)
+    mod_attr = mod.get(function_name)
+
+    try:
+        mod_attr.__signature__ = inspect.signature(np_attr)
+    except (ValueError, TypeError):
+        pass
+
+    try:
+        mod_attr.__name__ = np_attr.__name__
+    except (AttributeError, TypeError):
+        pass

@@ -449,10 +449,10 @@ for name in elementwise_mp + elementwise_mp_float:
 
         data = (_get_data(arg) for arg in args)
         out = np.vectorize(getattr(mp, name), otypes=[object])(*data, **kwargs)
-        # TODO: preserve complex output dtype for funcs like acos
 
-        dtype = (np.float64 if "128" in str(args[0].dtype)
-                 else np.float32) if name in {'imag', 'real'} else args[0].dtype
+        dtype = args[0].dtype
+        if name in {'imag', 'real'} and np.isdtype(dtype, 'complex floating'):
+            dtype = np.float64 if "128" in str(args[0].dtype) else np.float32
         return asarray(out, dtype=dtype)
     mod[name] = fun
 

@@ -162,8 +162,6 @@ cmd = [
   # https://github.com/data-apis/array-api-tests/issues/329
   "--disable-extension",
   "fft",
-  "--disable-extension",
-  "linalg",
   "--xfails-file",
   "../tools/xp-tests-xfails.txt",
   "--skips-file",

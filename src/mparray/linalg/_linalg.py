@@ -326,7 +326,11 @@ def solve(x1, x2, /, *, solve=mod['solve']):
         x1, x2 = xp.broadcast_arrays(x1, x2)
         x2 = x2[..., :1]
 
-    res = solve(x1, x2)[..., 0]
+    if not x1.size or not x2.size:
+        x1, x2 = xp.broadcast_arrays(x1, x2)
+        res = xp.empty(x2.shape[:-1], dtype=x2.dtype)
+    else:
+        res = solve(x1, x2)[..., 0]
 
     if x2_ndim > 1:
         res = xp.moveaxis(res, 0, -1)
@@ -370,6 +374,19 @@ def tensordot(x1, x2, /, *, axes=2):
 
 def vecdot(x1, x2, /, *, axis=-1):
     return xp.vecdot(x1, x2, axis=axis)
+
+
+def vector_norm(x, /, *, axis=None, keepdims=False, ord=2):
+    x, = _promote(x, atleast=float)
+    special_cases = {0: xp.count_nonzero,
+                     xp.inf: xp.max,
+                     -xp.inf: xp.min}
+    # if axis_was_none:
+    #     x = xp.reshape(x, (-1,))
+    #     axis = -1
+    if ord in special_cases:
+        return special_cases[ord](x, axis=axis, keepdims=keepdims)
+    return xp.sum(abs(x)**ord, axis=axis, keepdims=keepdims)**(1/ord)
 
 
 # generate rough documentation

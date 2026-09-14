@@ -148,8 +148,6 @@ array_api_tests/test_linalg.py::test_linalg_matrix_transpose
 # https://github.com/data-apis/array-api-tests/issues/467
 array_api_tests/test_linalg.py::test_inv
 array_api_tests/test_linalg.py::test_matrix_power
+array_api_tests/test_linalg.py::test_solve
 # https://github.com/data-apis/array-api-tests/issues/468
 array_api_tests/test_linalg.py::test_outer
-# incomplete
-array_api_tests/test_linalg.py::test_solve
-array_api_tests/test_linalg.py::test_vector_norm

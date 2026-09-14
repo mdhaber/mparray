@@ -381,12 +381,9 @@ def vector_norm(x, /, *, axis=None, keepdims=False, ord=2):
     special_cases = {0: xp.count_nonzero,
                      xp.inf: xp.max,
                      -xp.inf: xp.min}
-    # if axis_was_none:
-    #     x = xp.reshape(x, (-1,))
-    #     axis = -1
     if ord in special_cases:
         return special_cases[ord](x, axis=axis, keepdims=keepdims)
-    return xp.sum(abs(x)**ord, axis=axis, keepdims=keepdims)**(1/ord)
+    return xp.sum(abs(x)**ord, axis=axis, keepdims=keepdims)**(mp.one/ord)
 
 
 # generate rough documentation

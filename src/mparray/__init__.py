@@ -6,6 +6,6 @@ del _get_version
 
 from numpy import bool
 
-from mparray import special
+from mparray import linalg, special
 from mparray._mparray import *
 from mparray._mparray import __array_api_version__, __array_namespace_info__
